@@ -5,6 +5,7 @@ mod navigation;
 mod notifications;
 mod position;
 mod preferences;
+mod titles;
 mod updates;
 
 use std::sync::Mutex;

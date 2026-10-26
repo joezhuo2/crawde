@@ -76,10 +76,20 @@ pub fn start(app: AppHandle) -> Result<(), String> {
                     Ok(_) if body.len() <= 65_536 => {
                         match serde_json::from_str::<HookEvent>(&body) {
                             Ok(event) if EVENTS.contains(&event.hook_event_name.as_str()) => {
+                                let title = crate::titles::read_title(
+                                    &event.session_id,
+                                    &event.transcript_path,
+                                );
+                                let session_id = event.session_id.clone();
                                 let state = app.state::<AppState>();
                                 let status = match state.activity.lock() {
                                     Ok(mut activity) => {
                                         if activity.apply(event, now()).is_ok() {
+                                            if let (Some(title), Some(session)) =
+                                                (title, activity.sessions.get_mut(&session_id))
+                                            {
+                                                session.title = title;
+                                            }
                                             200
                                         } else {
                                             400

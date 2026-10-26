@@ -9,6 +9,8 @@
 - Negative monitor coordinates, edge snapping, and smaller display bounds.
 - WAV structure and volume scaling.
 - Folder URL encoding and transcript title parsing.
+- Wake-up from tool activity without process detection, continued activity after an old prompt, and sleep after inactivity.
+- Migration from unsupported HTTP startup hooks to command forwarding without replacing unrelated handlers.
 
 ## Windows release checklist
 

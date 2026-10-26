@@ -33,13 +33,15 @@ The Windows GitHub Actions workflow also uploads the installer as a build artifa
 - **Ctrl+Alt+P** or **tray click:** show/hide Crawde. The hotkey is configurable.
 - **Right-click pet or tray → Settings:** appearance, startup, movement, sounds, integration, updates, and Quit.
 
-The installed app waits in the tray on Windows startup and appears when Claude opens. If Claude closes, Crawde sleeps. It also sleeps after ten minutes without a prompt. Finished chat bubbles disappear after thirty seconds. Approvals tint their card orange and occasionally trigger an attack until Claude reports progress. Sounds distinguish approval, completion, and error; optional approval reminders repeat every forty-five seconds.
+The installed app waits in the tray on Windows startup and appears when Claude opens. If Claude closes, Crawde sleeps. It also sleeps after ten minutes without activity; ongoing tools and subagents keep it awake. Finished chat bubbles disappear after thirty seconds. Approvals tint their card orange and occasionally trigger an attack until Claude reports progress. Sounds distinguish approval, completion, and error; optional approval reminders repeat every forty-five seconds.
 
 Sprites are rendered with integer scaling and nearest-neighbor pixels. Reduced motion respects both Windows settings and Crawde's own preference. Development launches do not automatically register a startup entry.
 
 ## Integration and data
 
-Crawde adds observational HTTP hooks to `%USERPROFILE%/.claude/settings.json` (or `CLAUDE_CONFIG_DIR`). It preserves existing handlers, creates a timestamped backup on each change, and removes only its own handlers when disconnected. Existing sessions may need restarting after hook changes. Hooks never approve or deny Claude actions.
+Crawde adds observational hooks to `%USERPROFILE%/.claude/settings.json` (or `CLAUDE_CONFIG_DIR`). `SessionStart` uses a quiet `crawde.exe --crawde-hook` command to forward stdin to the local receiver, because Claude does not support HTTP handlers for that event. The other tracked events use HTTP handlers. Crawde preserves existing handlers, creates a timestamped backup on each change, and removes only its own handlers when disconnected. Existing sessions may need restarting after hook changes. Hooks never approve or deny Claude actions. Older startup-hook configurations are repaired automatically when Crawde launches.
+
+**Settings → Claude** shows when activity was last received. Installed hooks with no received activity usually mean the Claude session needs restarting, the hook is blocked by project/managed settings, or the session runs outside the local Windows environment.
 
 The receiver binds **127.0.0.1:47631**, requires a locally generated bearer token, rejects browser-origin requests, and limits payloads to 64 KiB. It keeps live session metadata in memory. It reads bounded sections of matching local Claude transcripts to recover conversation names. Prompts, tool arguments, and transcripts are not sent to any external service.
 

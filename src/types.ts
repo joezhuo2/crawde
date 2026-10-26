@@ -19,4 +19,5 @@ export interface Snapshot {
   claudeOpen?: boolean;
   dockRight?: boolean;
   dockTop?: boolean;
+  preferences?: import('./preferences').Preferences;
 }

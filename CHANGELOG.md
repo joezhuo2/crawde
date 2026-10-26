@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3 — 2026-10-26
+
+- Fix the invisible crab in Windows installers by shipping sprite sheets as local PNG assets instead of inline data URLs blocked by the native Content Security Policy.
+- Validate every production bundle against the native image policy and verify that all five sprite sheets are packaged and referenced.
+- Apply the native Content Security Policy to production previews, so preview checks catch installer-only image failures.
+
 ## 0.1.2 — 2026-10-26
 
 - Wake the pet from ongoing Claude activity, including long-running tools and embedded sessions.

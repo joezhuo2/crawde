@@ -11,6 +11,7 @@
 - Folder URL encoding and transcript title parsing.
 - Wake-up from tool activity without process detection, continued activity after an old prompt, and sleep after inactivity.
 - Migration from unsupported HTTP startup hooks to command forwarding without replacing unrelated handlers.
+- Production bundles contain all five sprite sheets as local assets and no inline images blocked by the native Content Security Policy. This check runs during every build, including release packaging.
 
 ## Windows release checklist
 

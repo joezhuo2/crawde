@@ -39,15 +39,40 @@ pub fn toggle(app: &AppHandle) -> Result<(), String> {
         .get_webview_window("pet")
         .ok_or("Pet window unavailable")?;
     let state = app.state::<AppState>();
-    let mut prefs = state.preferences.lock().map_err(|e| e.to_string())?;
-    prefs.enabled = !window.is_visible().map_err(|e| e.to_string())?;
-    if prefs.enabled {
-        window.show()
+    let enabled = !window.is_visible().map_err(|e| e.to_string())?;
+    set_pet_visible(app, enabled)?;
+    let updated = {
+        let mut prefs = state.preferences.lock().map_err(|e| e.to_string())?;
+        prefs.enabled = enabled;
+        prefs.clone()
+    };
+    preferences::persist(app, &updated)
+}
+
+pub fn set_pet_visible(app: &AppHandle, visible: bool) -> Result<(), String> {
+    let window = app
+        .get_webview_window("pet")
+        .ok_or("Pet window unavailable")?;
+    if visible {
+        crate::position::restore(app)?;
+        window.unminimize().map_err(|e| e.to_string())?;
+        window.set_always_on_top(true).map_err(|e| e.to_string())?;
+        window.show().map_err(|e| e.to_string())
     } else {
-        window.hide()
+        window.hide().map_err(|e| e.to_string())
     }
-    .map_err(|e| e.to_string())?;
-    preferences::persist(app, &prefs)
+}
+
+#[tauri::command]
+pub fn set_visibility(app: AppHandle, visible: bool) -> Result<(), String> {
+    set_pet_visible(&app, visible)?;
+    let updated = {
+        let state = app.state::<AppState>();
+        let mut prefs = state.preferences.lock().map_err(|e| e.to_string())?;
+        prefs.enabled = visible;
+        prefs.clone()
+    };
+    preferences::persist(&app, &updated)
 }
 
 #[tauri::command]
@@ -106,6 +131,11 @@ pub fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     if !crate::bridge::installed() {
         show_settings(app.clone())?;
     }
+    // Interactive launches show a sleeping pet even if Claude is not running.
+    // Only Windows startup launches wait quietly in the tray.
+    if prefs.enabled && !std::env::args().any(|arg| arg == "--background") {
+        set_pet_visible(app, true)?;
+    }
     start_presence(app.clone());
     Ok(())
 }
@@ -125,10 +155,9 @@ fn start_presence(app: AppHandle) {
             let was_open = lifecycle.claude_open;
             lifecycle.claude_open = open;
             drop(lifecycle);
-            if open && !was_open && state.preferences.lock().unwrap().enabled {
-                if let Some(window) = app.get_webview_window("pet") {
-                    let _ = window.show();
-                }
+            let enabled = state.preferences.lock().unwrap().enabled;
+            if open && !was_open && enabled {
+                let _ = set_pet_visible(&app, true);
             }
             // Keep the pet sleeping when Claude closes. Recheck monitor topology for docking/reconnection.
             if let Ok(monitors) = app.available_monitors() {

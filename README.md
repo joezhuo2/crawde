@@ -48,8 +48,10 @@ Regular Claude Chat, WSL/remote activity forwarding, and macOS are outside this 
 ### Updates
 
 Crawde checks GitHub releases when it opens, unless you turn that off in settings.
-**Settings → About → Check for updates** checks immediately. Downloads and installation
-are manual; an update check does not replace or restart the app.
+Right-click the crab or tray icon and select **Check for updates** to check immediately.
+**Close + install latest update** downloads the latest Windows installer, verifies its
+SHA-256 checksum, launches it, and closes Crawde. Failures leave Crawde running;
+the menu and About tab show update status.
 
 ## Features
 
@@ -78,8 +80,7 @@ are manual; an update check does not replace or restart the app.
 
 ## Settings and keybinds
 
-Right-click the crab or its tray icon and choose **Settings**. The menu stays small;
-preferences live in the settings window.
+Right-click the crab or its tray icon and choose **Settings**. Update actions are also available in that menu; preferences live in the settings window.
 
 | Action | Control |
 | --- | --- |

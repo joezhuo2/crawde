@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.4 — 2026-10-26
+
+- Move Check for updates from Settings to both right-click menus.
+- Add Close + install latest update with checksum verification and visible error status.
+
 ## 0.1.3 — 2026-10-26
 
 - Fix the invisible crab in Windows installers by shipping sprite sheets as local PNG assets instead of inline data URLs blocked by the native Content Security Policy.

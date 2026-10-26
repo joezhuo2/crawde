@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/platform-Windows-lightgrey" alt="platform: Windows">
   <a href="https://v2.tauri.app"><img src="https://img.shields.io/badge/Tauri-2-24C8DB?logo=tauri&logoColor=white" alt="Tauri 2"></a>
   <a href="https://react.dev"><img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white" alt="React 19"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/joezhuo2/crawde?color=green" alt="license: MIT"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="license: MIT"></a>
 </p>
 
 <p align="center">

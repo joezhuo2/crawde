@@ -4,9 +4,10 @@ import { defaults, type Preferences } from './preferences';
 import { useActivity } from './useActivity';
 import { command, native } from './native';
 import { Sprite } from './Sprite';
+import { SettingsSkeleton } from './SettingsSkeleton';
 
-function Toggle({ label, detail, checked, onChange }: { label: string; detail?: string; checked: boolean; onChange: (v: boolean) => void }) {
-  return <label className="setting-row"><span>{label}{detail && <small>{detail}</small>}</span><input className="toggle" type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} /></label>;
+function Toggle({ label, detail, checked, disabled, onChange }: { label: string; detail?: string; checked: boolean; disabled?: boolean; onChange: (v: boolean) => void }) {
+  return <label className="setting-row"><span>{label}{detail && <small>{detail}</small>}</span><input className="toggle" type="checkbox" checked={checked} disabled={disabled} onChange={e => onChange(e.target.checked)} /></label>;
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -21,6 +22,10 @@ export function Settings() {
   const [busy, setBusy] = useState(false);
   const preferences = draft ?? defaults;
   useEffect(() => { if (activity.preferences && !draft) setDraft(activity.preferences); }, [activity.preferences, draft]);
+  useEffect(() => {
+    const enabled = activity.preferences?.enabled;
+    if (enabled !== undefined) setDraft(current => current ? { ...current, enabled } : current);
+  }, [activity.preferences?.enabled]);
   useEffect(() => { document.documentElement.dataset.theme = preferences.theme; document.documentElement.dataset.reduced = String(preferences.reducedMotion); }, [preferences.theme, preferences.reducedMotion]);
   const set = <K extends keyof Preferences>(key: K, value: Preferences[K]) => { setDraft(p => ({ ...(p ?? defaults), [key]: value })); setMessage(''); };
   const act = async (name: string, args?: Record<string, unknown>, success?: string) => {
@@ -28,6 +33,15 @@ export function Settings() {
     try { await command(name, args); setMessage(success ?? ''); } catch (error) { setMessage(String(error)); }
     finally { setBusy(false); }
   };
+
+  const setVisibility = async (visible: boolean) => {
+    setBusy(true);
+    try { await command('set_visibility', { visible }); set('enabled', visible); }
+    catch (error) { setMessage(String(error)); }
+    finally { setBusy(false); }
+  };
+
+  if (!draft || new URLSearchParams(location.search).has('loading')) return <SettingsSkeleton error={activity.connectionError} />;
 
   return <main className="settings-shell">
     <header className="settings-header"><div><h1>Crawde</h1><p>A little company while Claude works.</p></div><Sprite animation="idle" scale={2} reducedMotion={preferences.reducedMotion} /></header>
@@ -37,8 +51,9 @@ export function Settings() {
     <form className="settings-content" onSubmit={e => { e.preventDefault(); void act('save_preferences', { preferences }, 'Preferences saved.'); }}>
       <div className="settings-page" key={tab}>
         {tab === 'companion' && <>
+          {!native && <p className="settings-note" role="status">Browser preview. Desktop visibility and saving are available in the Crawde Windows app.</p>}
           <h2>Your companion</h2>
-          <Toggle label="Show Crawde" detail="Tray click or hotkey toggles visibility." checked={preferences.enabled} onChange={v => set('enabled', v)} />
+          <Toggle label="Show Crawde" detail="Tray click or hotkey toggles visibility." checked={preferences.enabled} disabled={busy || !native} onChange={v => void setVisibility(v)} />
           <Toggle label="Launch with Windows" detail="Wait in the tray until Claude opens." checked={preferences.startup} onChange={v => set('startup', v)} />
           <Field label="Show / hide shortcut"><input className="hotkey-input" aria-label="Global hotkey" value={preferences.hotkey} onChange={e => set('hotkey', e.target.value)} placeholder="Ctrl+Alt+P" spellCheck={false} /></Field>
           <Field label="Appearance"><select value={preferences.theme} onChange={e => set('theme', e.target.value as Preferences['theme'])}><option value="system">Follow system</option><option value="light">Light</option><option value="dark">Dark</option></select></Field>
@@ -80,7 +95,7 @@ export function Settings() {
           <div className="quit-section"><button type="button" className="text-button" onClick={() => void act('quit')}>Quit Crawde</button><small>Stops the tray app until its next launch.</small></div>
         </>}
       </div>
-      <footer className="settings-footer"><span role="status">{message || activity.connectionError}</span><button className="primary-button" disabled={busy || !draft} type="submit">{busy ? 'Saving…' : 'Save changes'}</button></footer>
+      <footer className="settings-footer"><span role="status">{message || activity.connectionError}</span><button className="primary-button" disabled={busy || !draft || !native} type="submit">{busy ? 'Saving…' : 'Save changes'}</button></footer>
     </form>
     {!native && <button className="preview-close icon-button" title="Back to pet preview" onClick={() => location.search = '?demo'}><X size={16} /></button>}
   </main>;

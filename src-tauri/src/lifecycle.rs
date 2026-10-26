@@ -1,5 +1,5 @@
 use crate::{preferences, AppState};
-use tauri::{AppHandle, Manager, menu::{Menu, MenuItem}, tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Manager, menu::{ContextMenu, Menu, MenuItem}, tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 use tauri_plugin_autostart::ManagerExt;
 
@@ -32,7 +32,7 @@ pub fn show_context_menu(app: AppHandle) -> Result<(), String> {
     let item = MenuItem::with_id(&app, "settings", "Settings…", true, None::<&str>).map_err(|e| e.to_string())?;
     let menu = Menu::with_items(&app, &[&item]).map_err(|e| e.to_string())?;
     let window = app.get_webview_window("pet").ok_or("Pet window unavailable")?;
-    menu.popup(window).map_err(|e| e.to_string())
+    menu.popup(window.as_ref().clone()).map_err(|e| e.to_string())
 }
 
 pub fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {

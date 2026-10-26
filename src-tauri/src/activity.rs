@@ -30,7 +30,7 @@ pub struct Session {
 }
 
 #[derive(Default)]
-pub struct Activity { pub sessions: BTreeMap<String, Session> }
+pub struct Activity { pub sessions: BTreeMap<String, Session>, pub last_prompt_at: u64 }
 
 pub fn short(text: &str, max: usize) -> String {
     text.split_whitespace().collect::<Vec<_>>().join(" ").chars().take(max).collect()
@@ -43,6 +43,7 @@ impl Activity {
             return Err("Invalid session id".into());
         }
         let id = event.session_id.clone();
+        if event.hook_event_name == "UserPromptSubmit" { self.last_prompt_at = now; }
         if event.hook_event_name == "SessionEnd" {
             if let Some(session) = self.sessions.get_mut(&id) {
                 session.status = "done".into();

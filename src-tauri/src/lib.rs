@@ -26,6 +26,7 @@ struct Snapshot {
     dock_top: bool,
     claude_open: bool,
     preferences: preferences::Preferences,
+    last_prompt_at: u64,
 }
 
 #[tauri::command]
@@ -34,8 +35,13 @@ fn snapshot(state: State<AppState>) -> Result<Snapshot, String> {
         let position = state.position.lock().map_err(|e| e.to_string())?;
         (position.right, position.top)
     };
+    let (sessions, last_prompt_at) = {
+        let mut activity = state.activity.lock().map_err(|e| e.to_string())?;
+        (activity.visible(bridge::now()), activity.last_prompt_at)
+    };
     Ok(Snapshot {
-        sessions: state.activity.lock().map_err(|e| e.to_string())?.visible(bridge::now()),
+        sessions,
+        last_prompt_at,
         hooks_installed: bridge::installed(),
         bridge_error: state.bridge_error.lock().map_err(|e| e.to_string())?.clone(),
         dock_right,

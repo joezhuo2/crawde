@@ -20,4 +20,5 @@ export interface Snapshot {
   dockRight?: boolean;
   dockTop?: boolean;
   preferences?: import('./preferences').Preferences;
+  lastPromptAt?: number;
 }

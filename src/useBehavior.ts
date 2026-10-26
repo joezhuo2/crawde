@@ -2,12 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Animation } from './animation';
 import type { Session } from './types';
 
-export function useBehavior(sessions: Session[], claudeOpen: boolean, reduceMotion: boolean) {
+export function useBehavior(sessions: Session[], claudeOpen: boolean, reduceMotion: boolean, latestPrompt = 0) {
   const [clock, setClock] = useState(Date.now());
   const [action, setAction] = useState<Animation | null>(null);
   const [systemReduced, setSystemReduced] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
   const reduced = reduceMotion || systemReduced;
-  const lastPrompt = Math.max(0, ...sessions.map(s => s.lastPromptAt));
+  const lastPrompt = Math.max(latestPrompt, ...sessions.map(s => s.lastPromptAt));
   const sleeping = !claudeOpen || !lastPrompt || clock - lastPrompt >= 600_000;
   const approval = sessions.some(s => s.status === 'approval');
   const complete = useCallback(() => setAction(null), []);

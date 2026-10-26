@@ -11,7 +11,7 @@
   },
   "app": {
     "windows": [{
-      "label": "pet", "title": "Crawde", "width": 350, "height": 430,
+      "label": "pet", "title": "Crawde", "width": 350, "height": 520,
       "transparent": true, "decorations": false, "shadow": false,
       "alwaysOnTop": true, "skipTaskbar": true, "resizable": false,
       "visible": false, "focus": false

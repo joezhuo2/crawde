@@ -21,5 +21,7 @@ export interface Snapshot {
   dockTop?: boolean;
   preferences?: import('./preferences').Preferences;
   lastPromptAt?: number;
+  lastActivityAt?: number;
+  lastEventAt?: number;
   update?: { checkedAt: number; available: boolean; version: string | null; message: string };
 }

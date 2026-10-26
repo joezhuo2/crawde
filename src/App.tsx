@@ -26,7 +26,7 @@ export function App() {
     return () => { disposed = true; unlisten?.(); };
   }, []);
   const preferences = activity.preferences ?? defaults;
-  const behavior = useBehavior(activity.sessions, activity.claudeOpen ?? !native, preferences.reducedMotion, activity.lastPromptAt);
+  const behavior = useBehavior(activity.sessions, activity.claudeOpen ?? !native, preferences.reducedMotion, activity.lastPromptAt, activity.lastActivityAt);
   const position = usePetPosition(expanded, preferences.roaming && !behavior.sleeping && !behavior.reduced && behavior.animation === 'idle', behavior.ability);
   useEffect(() => { document.documentElement.dataset.theme = preferences.theme; document.documentElement.dataset.reduced = String(behavior.reduced); }, [preferences.theme, behavior.reduced]);
   const act = async (name: string, args?: Record<string, unknown>) => {

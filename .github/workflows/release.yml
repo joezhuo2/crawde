@@ -1,0 +1,75 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to release
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Verify tagged versions
+        shell: pwsh
+        run: |
+          $crawdeVersion = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $crawdeTauriVersion = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $crawdeCargoVersion = [regex]::Match((Get-Content src-tauri/Cargo.toml -Raw), '(?m)^version = "([^"]+)"').Groups[1].Value
+          if ($env:RELEASE_TAG -ne "v$crawdeVersion" -or $crawdeVersion -ne $crawdeTauriVersion -or $crawdeVersion -ne $crawdeCargoVersion) {
+            throw 'Tag and application versions must match.'
+          }
+      - run: npm ci
+      - run: npm run check
+      - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
+      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked
+      - run: npm run tauri build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Crawde-${{ env.RELEASE_TAG }}-Windows
+          path: src-tauri/target/release/bundle/nsis/*.exe
+      - name: Publish installer and release notes
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $false
+          $crawdeVersion = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $crawdeInstaller = Get-Item "src-tauri/target/release/bundle/nsis/Crawde_${crawdeVersion}_x64-setup.exe"
+          $crawdeChecksum = "$($crawdeInstaller.FullName).sha256"
+          $crawdeHash = (Get-FileHash -LiteralPath $crawdeInstaller.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          [IO.File]::WriteAllText($crawdeChecksum, "$crawdeHash  $($crawdeInstaller.Name)`n")
+          gh release view $env:RELEASE_TAG *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $env:RELEASE_TAG $crawdeInstaller.FullName $crawdeChecksum --clobber
+          } else {
+            $crawdeNotes = "docs/releases/$($env:RELEASE_TAG).md"
+            if (Test-Path -LiteralPath $crawdeNotes) {
+              gh release create $env:RELEASE_TAG $crawdeInstaller.FullName $crawdeChecksum --verify-tag --title "Crawde $($env:RELEASE_TAG)" --generate-notes --notes-file $crawdeNotes
+            } else {
+              gh release create $env:RELEASE_TAG $crawdeInstaller.FullName $crawdeChecksum --verify-tag --title "Crawde $($env:RELEASE_TAG)" --generate-notes
+            }
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub release publication failed.' }

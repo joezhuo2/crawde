@@ -136,6 +136,7 @@ pub fn run() {
             lifecycle::close_settings,
             lifecycle::set_visibility,
             preferences::save_preferences,
+            preferences::update_preference,
             notifications::test_sound,
             navigation::open_chat,
             navigation::new_chat,

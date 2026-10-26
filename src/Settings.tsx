@@ -1,5 +1,5 @@
 import { ArrowSquareOut, Check, X, SpeakerHigh, SlidersHorizontal, PlugsConnected, Info } from '@phosphor-icons/react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { defaults, type Preferences } from './preferences';
 import { useActivity } from './useActivity';
 import { command, native } from './native';
@@ -22,23 +22,38 @@ export function Settings() {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const preferences = draft ?? defaults;
-  useEffect(() => { if (activity.preferences && !draft) setDraft(activity.preferences); }, [activity.preferences, draft]);
+  const pending = useRef(new Map<keyof Preferences, { value: Preferences[keyof Preferences] }>());
+  const [saving, setSaving] = useState(0);
+  const [hotkey, setHotkey] = useState<string | null>(null);
   useEffect(() => {
-    const enabled = activity.preferences?.enabled;
-    if (enabled !== undefined) setDraft(current => current ? { ...current, enabled } : current);
-  }, [activity.preferences?.enabled]);
+    if (!activity.preferences) return;
+    const next = { ...activity.preferences };
+    for (const [key, edit] of pending.current) {
+      Object.assign(next, { [key]: edit.value });
+    }
+    setDraft(next);
+  }, [activity.preferences]);
   useEffect(() => { document.documentElement.dataset.theme = preferences.theme; document.documentElement.dataset.reduced = String(preferences.reducedMotion); }, [preferences.theme, preferences.reducedMotion]);
-  const set = <K extends keyof Preferences>(key: K, value: Preferences[K]) => { setDraft(p => ({ ...(p ?? defaults), [key]: value })); setMessage(''); };
+  const set = <K extends keyof Preferences>(key: K, value: Preferences[K]) => {
+    setDraft(p => ({ ...(p ?? defaults), [key]: value }));
+    setMessage('');
+    if (!native) return;
+    const edit = { value };
+    pending.current.set(key, edit);
+    setSaving(n => n + 1);
+    void (async () => {
+      try {
+        await command('update_preference', { key, value });
+        if (pending.current.get(key) === edit) pending.current.delete(key);
+      } catch (error) {
+        if (pending.current.get(key) === edit) pending.current.delete(key);
+        setMessage(`Could not save: ${String(error)}`);
+      } finally { setSaving(n => n - 1); }
+    })();
+  };
   const act = async (name: string, args?: Record<string, unknown>, success?: string) => {
     setBusy(true);
     try { await command(name, args); setMessage(success ?? ''); } catch (error) { setMessage(String(error)); }
-    finally { setBusy(false); }
-  };
-
-  const setVisibility = async (visible: boolean) => {
-    setBusy(true);
-    try { await command('set_visibility', { visible }); set('enabled', visible); }
-    catch (error) { setMessage(String(error)); }
     finally { setBusy(false); }
   };
 
@@ -49,14 +64,14 @@ export function Settings() {
     <nav className="settings-tabs" aria-label="Settings categories">{[
       ['companion', 'Companion', SlidersHorizontal], ['sounds', 'Sounds', SpeakerHigh], ['claude', 'Claude', PlugsConnected], ['about', 'About', Info],
     ].map(([id, label, Icon]) => { const TabIcon = Icon as typeof Info; return <button key={id as string} aria-current={tab === id ? 'page' : undefined} onClick={() => setTab(id as string)}><TabIcon size={17} />{label as string}</button>; })}</nav>
-    <form className="settings-content" onSubmit={e => { e.preventDefault(); void act('save_preferences', { preferences }, 'Preferences saved.'); }}>
+    <form className="settings-content" onSubmit={e => e.preventDefault()}>
       <div className="settings-page" key={tab}>
         {tab === 'companion' && <>
           {!native && <p className="settings-note" role="status">Browser preview. Desktop visibility and saving are available in the Crawde Windows app.</p>}
           <h2>Your companion</h2>
-          <Toggle label="Show Crawde" detail="Tray click or hotkey toggles visibility." checked={preferences.enabled} disabled={busy || !native} onChange={v => void setVisibility(v)} />
+          <Toggle label="Show Crawde" detail="Tray click or hotkey toggles visibility." checked={preferences.enabled} disabled={busy || !native} onChange={v => set('enabled', v)} />
           <Toggle label="Launch with Windows" detail="Wait in the tray until Claude opens." checked={preferences.startup} onChange={v => set('startup', v)} />
-          <Field label="Show / hide shortcut"><input className="hotkey-input" aria-label="Global hotkey" value={preferences.hotkey} onChange={e => set('hotkey', e.target.value)} placeholder="Ctrl+Alt+P" spellCheck={false} /></Field>
+          <Field label="Show / hide shortcut"><input className="hotkey-input" aria-label="Global hotkey" value={hotkey ?? preferences.hotkey} onChange={e => setHotkey(e.target.value)} onBlur={e => { if (hotkey !== null) set('hotkey', e.target.value); setHotkey(null); }} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }} placeholder="Ctrl+Alt+P" spellCheck={false} /></Field>
           <Field label="Appearance"><select value={preferences.theme} onChange={e => set('theme', e.target.value as Preferences['theme'])}><option value="system">Follow system</option><option value="light">Light</option><option value="dark">Dark</option></select></Field>
           <Field label="Pet size"><select value={preferences.scale} onChange={e => set('scale', Number(e.target.value))}><option value={2}>Small · 2× pixels</option><option value={3}>Medium · 3× pixels</option><option value={4}>Large · 4× pixels</option></select></Field>
           <h2>Movement</h2>
@@ -93,10 +108,9 @@ export function Settings() {
           <Toggle label="Check for updates on open" detail="Checks GitHub releases. Install from the right-click menu." checked={preferences.checkOnOpen} onChange={v => set('checkOnOpen', v)} />
           {activity.update && <p className="settings-note" role="status">{activity.update.message}</p>}
           <button type="button" className="text-button" onClick={() => void act('open_releases')}>View releases <ArrowSquareOut size={14} /></button>
-          <div className="quit-section"><button type="button" className="text-button" onClick={() => void act('quit')}>Quit Crawde</button><small>Stops the tray app until its next launch.</small></div>
         </>}
       </div>
-      <footer className="settings-footer"><span role="status">{message || activity.connectionError}</span><button className="primary-button" disabled={busy || !draft || !native} type="submit">{busy ? 'Saving…' : 'Save changes'}</button></footer>
+      <footer className="settings-footer"><span role="status">{message || activity.connectionError || (saving ? 'Saving…' : native ? 'Changes save automatically.' : 'Browser preview — changes are not saved.')}</span></footer>
     </form>
     {!native && <button className="preview-close icon-button" title="Back to pet preview" onClick={() => location.search = '?demo'}><X size={16} /></button>}
   </main>;

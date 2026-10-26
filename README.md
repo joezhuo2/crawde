@@ -92,7 +92,9 @@ Right-click the crab or its tray icon and choose **Settings**. Update actions ar
 | Dismiss a card | Its × button |
 | Play the crab ability | Click the crab |
 | Move the crab | Drag it |
-| Quit | **Settings → About → Quit Crawde** |
+| Quit | **Right-click → Quit Crawde** |
+
+Changes save automatically. The shortcut saves when you leave its field or press Enter.
 
 Settings include system/light/dark appearance, integer pet sizes, roaming, reduced
 motion, the global hotkey, and launch with Windows. Sounds have volume, soft/retro

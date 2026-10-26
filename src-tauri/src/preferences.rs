@@ -95,12 +95,14 @@ pub fn save_preferences(app: AppHandle, preferences: Preferences) -> Result<(), 
             .map_err(|e| format!("Shortcut is unavailable: {e}"))?;
     }
     let apply = || -> Result<(), String> {
-        if preferences.startup {
-            app.autolaunch().enable()
-        } else {
-            app.autolaunch().disable()
+        if previous.startup != preferences.startup {
+            if preferences.startup {
+                app.autolaunch().enable()
+            } else {
+                app.autolaunch().disable()
+            }
+            .map_err(|e| e.to_string())?;
         }
-        .map_err(|e| e.to_string())?;
         persist(&app, &preferences)
     };
     if let Err(error) = apply() {
@@ -109,17 +111,67 @@ pub fn save_preferences(app: AppHandle, preferences: Preferences) -> Result<(), 
                 .global_shortcut()
                 .unregister(preferences.hotkey.as_str());
         }
-        if previous.startup {
-            let _ = app.autolaunch().enable();
-        } else {
-            let _ = app.autolaunch().disable();
+        if previous.startup != preferences.startup {
+            if previous.startup {
+                let _ = app.autolaunch().enable();
+            } else {
+                let _ = app.autolaunch().disable();
+            }
         }
         return Err(error);
     }
     if previous.hotkey != preferences.hotkey {
         let _ = app.global_shortcut().unregister(previous.hotkey.as_str());
     }
-    crate::lifecycle::set_pet_visible(&app, preferences.enabled)?;
+    if previous.enabled != preferences.enabled {
+        crate::lifecycle::set_pet_visible(&app, preferences.enabled)?;
+    }
     *state.preferences.lock().map_err(|e| e.to_string())? = preferences;
     Ok(())
+}
+
+// Merge one edited field with current native state so tray changes are preserved.
+fn patched(
+    current: &Preferences,
+    key: &str,
+    value: serde_json::Value,
+) -> Result<Preferences, String> {
+    let mut object = serde_json::to_value(current).map_err(|e| e.to_string())?;
+    let field = object.get_mut(key).ok_or("Unknown preference")?;
+    *field = value;
+    serde_json::from_value(object).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn update_preference(
+    app: AppHandle,
+    key: String,
+    value: serde_json::Value,
+) -> Result<(), String> {
+    let current = app
+        .state::<crate::AppState>()
+        .preferences
+        .lock()
+        .map_err(|e| e.to_string())?
+        .clone();
+    save_preferences(app, patched(&current, &key, value)?)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn field_updates_preserve_other_preferences() {
+        let current = Preferences {
+            sound: false,
+            startup: false,
+            ..Preferences::default()
+        };
+        let next = patched(&current, "theme", serde_json::json!("dark")).unwrap();
+        assert_eq!(next.theme, "dark");
+        assert!(!next.sound);
+        assert!(!next.startup);
+        assert!(patched(&current, "missing", serde_json::json!(true)).is_err());
+        assert!(patched(&current, "scale", serde_json::json!("bad")).is_err());
+    }
 }

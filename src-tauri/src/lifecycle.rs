@@ -1,6 +1,6 @@
 use crate::{preferences, AppState};
 use tauri::{
-    menu::{ContextMenu, Menu, MenuItem},
+    menu::{CheckMenuItem, ContextMenu, Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Manager, WebviewUrl, WebviewWindowBuilder,
 };
@@ -96,7 +96,86 @@ pub fn context_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         None::<&str>,
     )?;
     let quit = MenuItem::with_id(app, "quit", "Quit Crawde", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&settings, &check, &install, &quit])?;
+    let prefs = app.state::<AppState>().preferences.lock().unwrap().clone();
+    let motion = CheckMenuItem::with_id(
+        app,
+        "reducedMotion",
+        "Reduce motion",
+        true,
+        prefs.reduced_motion,
+        None::<&str>,
+    )?;
+    let startup = CheckMenuItem::with_id(
+        app,
+        "startup",
+        "Launch on startup",
+        true,
+        prefs.startup,
+        None::<&str>,
+    )?;
+    let walks = CheckMenuItem::with_id(
+        app,
+        "roaming",
+        "Little walks",
+        true,
+        prefs.roaming,
+        None::<&str>,
+    )?;
+    let sound = CheckMenuItem::with_id(
+        app,
+        "sound",
+        "Sound effects",
+        true,
+        prefs.sound,
+        None::<&str>,
+    )?;
+    let installed = crate::bridge::installed();
+    let hooks = MenuItem::with_id(
+        app,
+        "install_hooks",
+        if installed {
+            "Reinstall activity hooks"
+        } else {
+            "Install activity hooks"
+        },
+        true,
+        None::<&str>,
+    )?;
+    let disconnect = MenuItem::with_id(
+        app,
+        "disconnect_hooks",
+        "Disconnect activity hooks",
+        installed,
+        None::<&str>,
+    )?;
+    let menu = Menu::with_items(
+        app,
+        &[
+            &settings,
+            &PredefinedMenuItem::separator(app)?,
+            &motion,
+            &startup,
+            &walks,
+            &sound,
+            &PredefinedMenuItem::separator(app)?,
+            &hooks,
+            &disconnect,
+            &PredefinedMenuItem::separator(app)?,
+            &check,
+            &install,
+            &quit,
+        ],
+    )?;
+    let message = app.state::<AppState>().menu_message.lock().unwrap().clone();
+    if let Some(message) = message {
+        menu.append(&MenuItem::with_id(
+            app,
+            "menu_status",
+            message,
+            false,
+            None::<&str>,
+        )?)?;
+    }
     let update = app.state::<AppState>().update.lock().unwrap().clone();
     if let Some(info) = update {
         menu.append(&MenuItem::with_id(
@@ -117,15 +196,44 @@ pub fn refresh_menu(app: &AppHandle) {
 }
 
 pub fn handle_menu(app: &AppHandle, id: &str) {
-    match id {
-        "settings" => {
-            let _ = show_settings(app.clone());
+    let result = match id {
+        "settings" => show_settings(app.clone()),
+        "quit" => {
+            quit(app.clone());
+            return;
         }
-        "quit" => quit(app.clone()),
-        "check_updates" => crate::updates::start(app, false),
-        "install_update" => crate::updates::start(app, true),
-        _ => {}
-    }
+        "check_updates" => {
+            crate::updates::start(app, false);
+            return;
+        }
+        "install_update" => {
+            crate::updates::start(app, true);
+            return;
+        }
+        "reducedMotion" | "startup" | "roaming" | "sound" => {
+            let prefs = app.state::<AppState>().preferences.lock().unwrap().clone();
+            let current = match id {
+                "reducedMotion" => prefs.reduced_motion,
+                "startup" => prefs.startup,
+                "roaming" => prefs.roaming,
+                _ => prefs.sound,
+            };
+            preferences::update_preference(app.clone(), id.into(), serde_json::json!(!current))
+        }
+        "install_hooks" | "disconnect_hooks" => {
+            crate::bridge::configure_hooks(app.clone(), id == "install_hooks")
+        }
+        _ => return,
+    };
+    let message = match result {
+        Err(error) => Some(error),
+        Ok(()) if id == "install_hooks" => {
+            Some("Hooks installed. Restart existing Claude sessions.".into())
+        }
+        Ok(()) => None,
+    };
+    *app.state::<AppState>().menu_message.lock().unwrap() = message;
+    refresh_menu(app);
 }
 
 #[tauri::command]

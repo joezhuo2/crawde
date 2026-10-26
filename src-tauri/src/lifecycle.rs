@@ -90,6 +90,12 @@ pub fn show_context_menu(app: AppHandle) -> Result<(), String> {
 pub fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let prefs = preferences::load(app);
     *app.state::<AppState>().preferences.lock().unwrap() = prefs.clone();
+    if crate::bridge::installed() && crate::bridge::needs_repair() {
+        if let Err(error) = crate::bridge::configure_hooks(app.clone(), true) {
+            *app.state::<AppState>().bridge_error.lock().unwrap() =
+                Some(format!("Activity hooks need reconnecting: {error}"));
+        }
+    }
     if prefs.startup && !cfg!(debug_assertions) {
         app.autolaunch().enable()?;
     }

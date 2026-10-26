@@ -68,7 +68,17 @@ impl Activity {
         }
         let id = event.session_id.clone();
         self.last_event_at = now;
-        if matches!(event.hook_event_name.as_str(), "SessionStart" | "UserPromptSubmit" | "PreToolUse" | "PostToolUse" | "SubagentStart" | "SubagentStop" | "PermissionRequest" | "Elicitation") {
+        if matches!(
+            event.hook_event_name.as_str(),
+            "SessionStart"
+                | "UserPromptSubmit"
+                | "PreToolUse"
+                | "PostToolUse"
+                | "SubagentStart"
+                | "SubagentStop"
+                | "PermissionRequest"
+                | "Elicitation"
+        ) {
             self.last_activity_at = now;
         }
         if event.hook_event_name == "UserPromptSubmit" {
@@ -211,7 +221,9 @@ impl Activity {
     }
 
     pub fn has_recent_work(&self, now: u64) -> bool {
-        self.sessions.values().any(|session| session.status != "done" && now.saturating_sub(session.updated_at) < 600_000)
+        self.sessions.values().any(|session| {
+            session.status != "done" && now.saturating_sub(session.updated_at) < 600_000
+        })
     }
 }
 
@@ -244,6 +256,16 @@ mod tests {
         assert_eq!(state.visible(40_000).len(), 1);
         state.apply(event("Stop"), 40_000).unwrap();
         assert!(state.visible(70_000).is_empty());
+    }
+    #[test]
+    fn tool_events_wake_activity_without_a_prompt_and_session_end_clears_work() {
+        let mut state = Activity::default();
+        state.apply(event("PreToolUse"), 100).unwrap();
+        assert_eq!(state.last_activity_at, 100);
+        assert!(state.has_recent_work(100));
+        state.apply(event("SessionEnd"), 200).unwrap();
+        assert!(!state.has_recent_work(200));
+        assert_eq!(state.last_event_at, 200);
     }
     #[test]
     fn agents_are_deduplicated_and_approval_clears_on_tool_progress() {

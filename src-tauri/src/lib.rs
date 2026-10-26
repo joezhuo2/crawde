@@ -8,6 +8,7 @@ mod preferences;
 mod titles;
 mod updates;
 
+pub use bridge::forward_hook;
 use std::sync::Mutex;
 use tauri::{Manager, State};
 
@@ -47,7 +48,13 @@ fn snapshot(state: State<AppState>) -> Result<Snapshot, String> {
     };
     let (sessions, last_prompt_at, last_activity_at, last_event_at, recent_work) = {
         let mut activity = state.activity.lock().map_err(|e| e.to_string())?;
-        (activity.visible(bridge::now()), activity.last_prompt_at, activity.last_activity_at, activity.last_event_at, activity.has_recent_work(bridge::now()))
+        (
+            activity.visible(bridge::now()),
+            activity.last_prompt_at,
+            activity.last_activity_at,
+            activity.last_event_at,
+            activity.has_recent_work(bridge::now()),
+        )
     };
     Ok(Snapshot {
         sessions,
@@ -67,7 +74,8 @@ fn snapshot(state: State<AppState>) -> Result<Snapshot, String> {
             .lifecycle
             .lock()
             .map_err(|e| e.to_string())?
-            .claude_open || recent_work,
+            .claude_open
+            || recent_work,
         preferences: state.preferences.lock().map_err(|e| e.to_string())?.clone(),
     })
 }

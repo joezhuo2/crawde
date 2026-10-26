@@ -17,6 +17,8 @@ pub struct HookEvent {
     pub agent_id: String,
     #[serde(default)]
     pub notification_type: String,
+    #[serde(default)]
+    pub transcript_path: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -107,9 +109,11 @@ impl Activity {
         session.updated_at = now;
         match event.hook_event_name.as_str() {
             "UserPromptSubmit" => {
-                session.title = short(&event.prompt, 90);
-                if session.title.is_empty() {
-                    session.title = "New conversation".into();
+                if session.title == "New conversation" {
+                    let prompt_title = short(&event.prompt, 90);
+                    if !prompt_title.is_empty() {
+                        session.title = prompt_title;
+                    }
                 }
                 session.last_prompt_at = now;
                 session.status = "working".into();

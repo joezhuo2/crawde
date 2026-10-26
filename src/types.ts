@@ -1,0 +1,20 @@
+export interface Session {
+  id: string;
+  cwd: string;
+  project: string;
+  title: string;
+  status: 'working' | 'approval' | 'done' | 'error';
+  activity: string;
+  tool: string;
+  agents: string[];
+  updatedAt: number;
+  lastPromptAt: number;
+  finishedAt: number | null;
+}
+
+export interface Snapshot {
+  sessions: Session[];
+  hooksInstalled: boolean;
+  bridgeError: string | null;
+  claudeOpen?: boolean;
+}

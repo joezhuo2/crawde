@@ -5,7 +5,7 @@ import attackA from '../sprites/Crab_AttackA.png';
 import attackB from '../sprites/Crab_AttackB.png';
 
 export const animations = {
-  idle: { image: idle, frames: 4, columns: 4, fps: 3.6 },
+  idle: { image: idle, frames: 4, columns: 4, fps: 4 },
   run: { image: run, frames: 6, columns: 4, fps: 11 },
   ability: { image: ability, frames: 10, columns: 4, fps: 12 },
   attackA: { image: attackA, frames: 10, columns: 4, fps: 13 },

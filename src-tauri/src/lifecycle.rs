@@ -65,7 +65,7 @@ pub fn show_context_menu(app: AppHandle) -> Result<(), String> {
 pub fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let prefs = preferences::load(app);
     *app.state::<AppState>().preferences.lock().unwrap() = prefs.clone();
-    if prefs.startup {
+    if prefs.startup && !cfg!(debug_assertions) {
         app.autolaunch().enable()?;
     }
     app.global_shortcut()

@@ -9,6 +9,7 @@
     "preview": "vite preview --host 127.0.0.1",
     "tauri": "tauri",
     "test": "vitest run",
+    "branding": "node scripts/make-branding.mjs",
     "check": "tsc -b && vitest run"
   },
   "dependencies": {

@@ -108,11 +108,9 @@ pub fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let item = MenuItem::with_id(app, "settings", "Settings…", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&item])?;
     TrayIconBuilder::with_id("crawde")
-        .icon(
-            app.default_window_icon()
-                .cloned()
-                .ok_or("Missing tray icon")?,
-        )
+        .icon(tauri::image::Image::from_bytes(include_bytes!(
+            "../icons/tray.png"
+        ))?)
         .tooltip("Crawde · click to show or hide")
         .menu(&menu)
         .show_menu_on_left_click(false)

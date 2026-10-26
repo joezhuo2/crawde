@@ -17,4 +17,6 @@ export interface Snapshot {
   hooksInstalled: boolean;
   bridgeError: string | null;
   claudeOpen?: boolean;
+  dockRight?: boolean;
+  dockTop?: boolean;
 }

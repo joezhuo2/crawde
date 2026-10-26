@@ -23,8 +23,8 @@
 - [ ] Ability, run, idle, attacks, sleep, and reduced motion render correctly.
 - [ ] Drag versus click is distinct; all four edges snap; display positions survive restart.
 - [ ] Transparent areas pass clicks through; visible controls remain usable.
-- [ ] Tray and hotkey toggle visibility; both right-click menus offer Settings and update actions.
-- [ ] Settings persist; startup registration follows the startup preference.
+- [ ] Tray and hotkey toggle visibility; both right-click menus offer Settings, update actions, and Quit.
+- [ ] Settings save automatically, including rapid changes; startup registration follows the startup preference.
 - [ ] Native sound playback works before the first pet click; mute and volume work.
 - [ ] New chat uses the selected project and clicking a card resumes the correct conversation.
 - [ ] Install update verifies the checksum, launches the installer before exiting, and stays open on failure.

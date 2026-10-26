@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5 — 2026-10-26
+
+- Move Quit Crawde from Settings to both right-click menus.
+- Save preference changes automatically, preserving other changes made through native controls.
+
 ## 0.1.4 — 2026-10-26
 
 - Move Check for updates from Settings to both right-click menus.

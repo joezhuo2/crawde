@@ -95,7 +95,8 @@ pub fn context_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         !busy,
         None::<&str>,
     )?;
-    let menu = Menu::with_items(app, &[&settings, &check, &install])?;
+    let quit = MenuItem::with_id(app, "quit", "Quit Crawde", true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&settings, &check, &install, &quit])?;
     let update = app.state::<AppState>().update.lock().unwrap().clone();
     if let Some(info) = update {
         menu.append(&MenuItem::with_id(
@@ -120,6 +121,7 @@ pub fn handle_menu(app: &AppHandle, id: &str) {
         "settings" => {
             let _ = show_settings(app.clone());
         }
+        "quit" => quit(app.clone()),
         "check_updates" => crate::updates::start(app, false),
         "install_update" => crate::updates::start(app, true),
         _ => {}

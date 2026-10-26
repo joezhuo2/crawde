@@ -36,7 +36,7 @@ export function ChatBubbles({ sessions, expanded, pinned, onPin, onOpen, onDismi
   const visible = sessions.slice(page * 3, page * 3 + 3);
   if (!sessions.length) return null;
 
-  return <section className={`chat-list ${expanded ? 'expanded' : 'collapsed'}`} style={{ '--count': visible.length } as React.CSSProperties} aria-label="Active Claude chats">
+  return <section className={`chat-list ${expanded ? 'expanded' : 'collapsed'}`} style={{ '--count': visible.length, '--footer-height': pages > 1 ? '24px' : '0px' } as React.CSSProperties} aria-label="Active Claude chats">
     <div className="list-heading">
       <span>{sessions.length} {sessions.length === 1 ? 'conversation' : 'conversations'}</span>
       <button className="icon-button pin" tabIndex={expanded ? 0 : -1} title={pinned ? 'Unpin chats' : 'Keep chats expanded'} aria-pressed={pinned} onClick={onPin}>

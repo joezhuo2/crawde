@@ -34,6 +34,8 @@ struct Snapshot {
     claude_open: bool,
     preferences: preferences::Preferences,
     last_prompt_at: u64,
+    last_activity_at: u64,
+    last_event_at: u64,
     update: Option<updates::UpdateInfo>,
 }
 
@@ -43,13 +45,15 @@ fn snapshot(state: State<AppState>) -> Result<Snapshot, String> {
         let position = state.position.lock().map_err(|e| e.to_string())?;
         (position.right, position.top)
     };
-    let (sessions, last_prompt_at) = {
+    let (sessions, last_prompt_at, last_activity_at, last_event_at, recent_work) = {
         let mut activity = state.activity.lock().map_err(|e| e.to_string())?;
-        (activity.visible(bridge::now()), activity.last_prompt_at)
+        (activity.visible(bridge::now()), activity.last_prompt_at, activity.last_activity_at, activity.last_event_at, activity.has_recent_work(bridge::now()))
     };
     Ok(Snapshot {
         sessions,
         last_prompt_at,
+        last_activity_at,
+        last_event_at,
         update: state.update.lock().map_err(|e| e.to_string())?.clone(),
         hooks_installed: bridge::installed(),
         bridge_error: state
@@ -63,7 +67,7 @@ fn snapshot(state: State<AppState>) -> Result<Snapshot, String> {
             .lifecycle
             .lock()
             .map_err(|e| e.to_string())?
-            .claude_open,
+            .claude_open || recent_work,
         preferences: state.preferences.lock().map_err(|e| e.to_string())?.clone(),
     })
 }

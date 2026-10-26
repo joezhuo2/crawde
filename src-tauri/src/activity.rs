@@ -42,6 +42,8 @@ pub struct Activity {
     pub sessions: BTreeMap<String, Session>,
     pub last_prompt_at: u64,
     dismissed: BTreeSet<String>,
+    pub last_activity_at: u64,
+    pub last_event_at: u64,
 }
 
 pub fn short(text: &str, max: usize) -> String {
@@ -65,6 +67,10 @@ impl Activity {
             return Err("Invalid session id".into());
         }
         let id = event.session_id.clone();
+        self.last_event_at = now;
+        if matches!(event.hook_event_name.as_str(), "SessionStart" | "UserPromptSubmit" | "PreToolUse" | "PostToolUse" | "SubagentStart" | "SubagentStop" | "PermissionRequest" | "Elicitation") {
+            self.last_activity_at = now;
+        }
         if event.hook_event_name == "UserPromptSubmit" {
             self.last_prompt_at = now;
             self.dismissed.remove(&id);
@@ -202,6 +208,10 @@ impl Activity {
 
     pub fn is_dismissed(&self, id: &str) -> bool {
         self.dismissed.contains(id)
+    }
+
+    pub fn has_recent_work(&self, now: u64) -> bool {
+        self.sessions.values().any(|session| session.status != "done" && now.saturating_sub(session.updated_at) < 600_000)
     }
 }
 

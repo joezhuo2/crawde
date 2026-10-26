@@ -77,6 +77,7 @@ export function Settings() {
         {tab === 'claude' && <>
           <h2>Connected to your work</h2>
           <div className={`connection-status ${activity.hooksInstalled ? 'connected' : ''}`}><Check size={17} />{activity.hooksInstalled ? 'Claude Code hooks installed' : 'Activity hooks are not connected'}</div>
+          {activity.hooksInstalled && <p className="settings-note" role="status">{activity.lastEventAt ? `Activity received ${Math.max(0, Math.floor((Date.now() - activity.lastEventAt) / 1000))} seconds ago.` : 'No activity received yet. Start a new Claude Code session after connecting hooks.'}</p>}
           <p className="settings-note">Supports Claude Code in your terminal and the Code tab in Claude Desktop. Crawde observes activity and leaves every approval to you.</p>
           <button type="button" className="secondary-button" disabled={busy} onClick={() => void act('configure_hooks', { install: !activity.hooksInstalled }, activity.hooksInstalled ? 'Disconnected. Existing hooks were preserved.' : 'Connected. Restart existing Claude sessions to load hooks.')}>
             {activity.hooksInstalled ? 'Disconnect activity hooks' : 'Connect activity hooks'}

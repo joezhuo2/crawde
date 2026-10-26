@@ -120,10 +120,11 @@ pub fn drag_start(app: AppHandle, state: State<AppState>) -> Result<(), String> 
     let window = app
         .get_webview_window("pet")
         .ok_or("Pet window unavailable")?;
-    state.position.lock().map_err(|e| e.to_string())?.drag = Some((
+    let drag = (
         window.cursor_position().map_err(|e| e.to_string())?,
         window.outer_position().map_err(|e| e.to_string())?,
-    ));
+    );
+    state.position.lock().map_err(|e| e.to_string())?.drag = Some(drag);
     Ok(())
 }
 

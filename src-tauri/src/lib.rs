@@ -71,7 +71,10 @@ fn snapshot(state: State<AppState>) -> Result<Snapshot, String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _| {
-            if !args.iter().any(|arg| arg == "--background") {
+            if args.iter().any(|arg| arg == "--toggle") {
+                let _ = lifecycle::toggle(app);
+            } else if !args.iter().any(|arg| arg == "--background") {
+                let _ = lifecycle::set_pet_visible(app, true);
                 let _ = lifecycle::show_settings(app.clone());
             }
         }))
@@ -111,6 +114,7 @@ pub fn run() {
             lifecycle::show_context_menu,
             lifecycle::quit,
             lifecycle::close_settings,
+            lifecycle::set_visibility,
             preferences::save_preferences,
             notifications::test_sound,
             navigation::open_chat,

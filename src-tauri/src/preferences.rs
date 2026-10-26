@@ -119,13 +119,7 @@ pub fn save_preferences(app: AppHandle, preferences: Preferences) -> Result<(), 
     if previous.hotkey != preferences.hotkey {
         let _ = app.global_shortcut().unregister(previous.hotkey.as_str());
     }
-    if let Some(window) = app.get_webview_window("pet") {
-        if preferences.enabled {
-            let _ = window.show();
-        } else {
-            let _ = window.hide();
-        }
-    }
+    crate::lifecycle::set_pet_visible(&app, preferences.enabled)?;
     *state.preferences.lock().map_err(|e| e.to_string())? = preferences;
     Ok(())
 }

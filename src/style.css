@@ -89,4 +89,16 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .quit-section { margin-top: 35px; }
 .quit-section small { font-size: 10px; color: var(--muted); }
 .preview-close { position: fixed; top: 12px; right: 12px; }
+.skeleton { background: var(--control); border-radius: 5px; animation: skeleton-breathe 2s ease-in-out infinite; }
+.skeleton-title { width: 110px; height: 24px; margin-bottom: 10px; }
+.skeleton-subtitle { width: 220px; height: 12px; }
+.skeleton-avatar { width: 48px; height: 48px; border-radius: 10px; }
+.skeleton-tab { height: 46px; flex: 1; margin-top: 2px; }
+.skeleton-section { width: 115px; height: 13px; margin: 22px 0 15px; }
+.skeleton-label { width: 135px; height: 12px; margin-bottom: 8px; }
+.skeleton-detail { width: 190px; height: 9px; }
+.skeleton-control { width: 35px; height: 20px; }
+.skeleton-row:nth-child(4) .skeleton-control, .skeleton-row:nth-child(5) .skeleton-control { width: 125px; height: 30px; }
+.skeleton-save { width: 108px; height: 34px; flex-shrink: 0; }
+@keyframes skeleton-breathe { 50% { opacity: .45; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }

@@ -23,6 +23,7 @@ struct AppState {
     navigation: Mutex<navigation::Navigation>,
     update: Mutex<Option<updates::UpdateInfo>>,
     update_busy: std::sync::atomic::AtomicBool,
+    menu_message: Mutex<Option<String>>,
 }
 
 #[derive(serde::Serialize)]

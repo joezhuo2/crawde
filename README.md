@@ -38,8 +38,8 @@ Get the latest Windows x64 installer from [Releases](https://github.com/joezhuo2
 
 ### First launch
 
-1. Open Crawde, then right-click the crab or its tray icon and choose **Settings**.
-2. In **Claude**, select **Connect activity hooks**.
+1. Open Crawde, then right-click the crab or its tray icon.
+2. Select **Install activity hooks**.
 3. Start a new Claude Code session, or restart an existing one so it loads the hooks.
 
 Supports Claude Code in your terminal and the **Code tab** in Claude Desktop.
@@ -80,7 +80,10 @@ the menu and About tab show update status.
 
 ## Settings and keybinds
 
-Right-click the crab or its tray icon and choose **Settings**. Update actions are also available in that menu; preferences live in the settings window.
+Right-click the crab or its tray icon and choose **Settings**. The same menu provides
+**Reduce motion**, **Launch on startup**, **Little walks**, **Sound effects**, activity
+hook installation/reinstallation and disconnection, updates, and **Quit Crawde**.
+These controls live only in the right-click menus and save immediately.
 
 | Action | Control |
 | --- | --- |
@@ -96,8 +99,8 @@ Right-click the crab or its tray icon and choose **Settings**. Update actions ar
 
 Changes save automatically. The shortcut saves when you leave its field or press Enter.
 
-Settings include system/light/dark appearance, integer pet sizes, roaming, reduced
-motion, the global hotkey, and launch with Windows. Sounds have volume, soft/retro
+Settings include system/light/dark appearance, integer pet sizes, and the global
+hotkey. Sounds have volume, soft/retro
 styles, separate event toggles, and approval reminders. Chat navigation can use
 Claude Desktop or Windows Terminal.
 
@@ -107,7 +110,7 @@ in the tray until Claude opens. Windows may put the tray icon in its overflow me
 ## Claude integration
 
 **Settings → Claude** shows whether hooks are installed and when activity was last
-received. If it says no activity has arrived, restart the Claude session after
+received. Install or reinstall hooks from the right-click menu. If it says no activity has arrived, restart the Claude session after
 connecting hooks and check that it is running locally on Windows.
 
 Crawde preserves your existing Claude hooks, backs up settings before changes,

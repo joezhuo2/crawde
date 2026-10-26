@@ -127,6 +127,7 @@ pub fn save_preferences(app: AppHandle, preferences: Preferences) -> Result<(), 
         crate::lifecycle::set_pet_visible(&app, preferences.enabled)?;
     }
     *state.preferences.lock().map_err(|e| e.to_string())? = preferences;
+    crate::lifecycle::refresh_menu(&app);
     Ok(())
 }
 

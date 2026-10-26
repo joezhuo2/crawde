@@ -20,7 +20,6 @@ export function Settings() {
   const [draft, setDraft] = useState<Preferences | null>(native ? null : defaults);
   const [tab, setTab] = useState('companion');
   const [message, setMessage] = useState('');
-  const [busy, setBusy] = useState(false);
   const preferences = draft ?? defaults;
   const pending = useRef(new Map<keyof Preferences, { value: Preferences[keyof Preferences] }>());
   const [saving, setSaving] = useState(0);
@@ -52,9 +51,7 @@ export function Settings() {
     })();
   };
   const act = async (name: string, args?: Record<string, unknown>, success?: string) => {
-    setBusy(true);
     try { await command(name, args); setMessage(success ?? ''); } catch (error) { setMessage(String(error)); }
-    finally { setBusy(false); }
   };
 
   if (!draft || new URLSearchParams(location.search).has('loading')) return <SettingsSkeleton error={activity.connectionError} />;
@@ -69,19 +66,14 @@ export function Settings() {
         {tab === 'companion' && <>
           {!native && <p className="settings-note" role="status">Browser preview. Desktop visibility and saving are available in the Crawde Windows app.</p>}
           <h2>Your companion</h2>
-          <Toggle label="Show Crawde" detail="Tray click or hotkey toggles visibility." checked={preferences.enabled} disabled={busy || !native} onChange={v => set('enabled', v)} />
-          <Toggle label="Launch with Windows" detail="Wait in the tray until Claude opens." checked={preferences.startup} onChange={v => set('startup', v)} />
+          <Toggle label="Show Crawde" detail="Tray click or hotkey toggles visibility." checked={preferences.enabled} disabled={!native} onChange={v => set('enabled', v)} />
           <Field label="Show / hide shortcut"><input className="hotkey-input" aria-label="Global hotkey" value={hotkey ?? preferences.hotkey} onChange={e => setHotkey(e.target.value)} onBlur={e => { if (hotkey !== null) set('hotkey', e.target.value); setHotkey(null); }} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }} placeholder="Ctrl+Alt+P" spellCheck={false} /></Field>
           <Field label="Appearance"><select value={preferences.theme} onChange={e => set('theme', e.target.value as Preferences['theme'])}><option value="system">Follow system</option><option value="light">Light</option><option value="dark">Dark</option></select></Field>
           <Field label="Pet size"><select value={preferences.scale} onChange={e => set('scale', Number(e.target.value))}><option value={2}>Small · 2× pixels</option><option value={3}>Medium · 3× pixels</option><option value={4}>Large · 4× pixels</option></select></Field>
-          <h2>Movement</h2>
-          <Toggle label="Little walks" detail="Occasional short runs near its saved spot." checked={preferences.roaming} onChange={v => set('roaming', v)} />
-          <Toggle label="Reduce motion" detail="Still sprite; no roaming or repeated attacks." checked={preferences.reducedMotion} onChange={v => set('reducedMotion', v)} />
           <p className="settings-note">Drag Crawde to move it. Positions are remembered per monitor. It sleeps after 10 minutes without a prompt, or when Claude closes.</p>
         </>}
         {tab === 'sounds' && <>
           <h2>A gentle heads-up</h2>
-          <Toggle label="Sound effects" checked={preferences.sound} onChange={v => set('sound', v)} />
           <Field label="Volume"><input aria-label="Sound volume" type="range" min="0" max="1" step="0.05" value={preferences.volume} onChange={e => set('volume', Number(e.target.value))} /></Field>
           <Field label="Sound style"><select value={preferences.soundStyle} onChange={e => set('soundStyle', e.target.value as Preferences['soundStyle'])}><option value="soft">Soft tones</option><option value="retro">Retro game</option></select></Field>
           <Toggle label="Needs approval" checked={preferences.approvalSound} onChange={v => set('approvalSound', v)} />
@@ -95,9 +87,7 @@ export function Settings() {
           <div className={`connection-status ${activity.hooksInstalled ? 'connected' : ''}`}><Check size={17} />{activity.hooksInstalled ? 'Claude Code hooks installed' : 'Activity hooks are not connected'}</div>
           {activity.hooksInstalled && <p className="settings-note" role="status">{activity.lastEventAt ? `Activity received ${Math.max(0, Math.floor((Date.now() - activity.lastEventAt) / 1000))} seconds ago.` : 'No activity received yet. Start a new Claude Code session after connecting hooks.'}</p>}
           <p className="settings-note">Supports Claude Code in your terminal and the Code tab in Claude Desktop. Crawde observes activity and leaves every approval to you.</p>
-          <button type="button" className="secondary-button" disabled={busy} onClick={() => void act('configure_hooks', { install: !activity.hooksInstalled }, activity.hooksInstalled ? 'Disconnected. Existing hooks were preserved.' : 'Connected. Restart existing Claude sessions to load hooks.')}>
-            {activity.hooksInstalled ? 'Disconnect activity hooks' : 'Connect activity hooks'}
-          </button>
+          <p className="settings-note">Right-click Crawde or its tray icon to install, reinstall, or disconnect activity hooks.</p>
           <Field label="Open chats in"><select value={preferences.openTarget} onChange={e => set('openTarget', e.target.value as Preferences['openTarget'])}><option value="desktop">Claude Desktop</option><option value="terminal">Windows Terminal</option></select></Field>
           <p className="settings-note">New chat uses the most recently active project. A clicked conversation becomes the current project.</p>
           {activity.bridgeError && <p className="settings-error">{activity.bridgeError}</p>}

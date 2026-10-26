@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.6 — 2026-10-26
+
+- Move Reduce motion, Launch on startup, Little walks, and Sound effects exclusively to both right-click menus.
+- Move hook installation, reinstallation, and disconnection into the menus.
+- Keep menu checkmarks and open Settings windows synchronized with saved preferences.
+
 ## 0.1.5 — 2026-10-26
 
 - Move Quit Crawde from Settings to both right-click menus.

@@ -16,14 +16,15 @@
 ## Windows release checklist
 
 - [ ] Installer builds and launches on Windows.
-- [ ] First-launch settings render; connect hooks without replacing existing settings.
+- [ ] First-launch settings render; install/reinstall hooks from the right-click menu without replacing existing settings.
 - [ ] CLI and Desktop Code events appear with correct titles and current tool/subagent details.
 - [ ] Hover expands, pin persists while leaving, three-chat pagination works.
 - [ ] Completion checkmark expires after 30 seconds; new prompts restore the chat.
 - [ ] Ability, run, idle, attacks, sleep, and reduced motion render correctly.
 - [ ] Drag versus click is distinct; all four edges snap; display positions survive restart.
 - [ ] Transparent areas pass clicks through; visible controls remain usable.
-- [ ] Tray and hotkey toggle visibility; both right-click menus offer Settings, update actions, and Quit.
+- [ ] Tray and hotkey toggle visibility; both right-click menus offer Settings, preference toggles, hook actions, update actions, and Quit.
+- [ ] Moved controls appear only in menus; tray checkmarks and the pet reflect saved state after restart.
 - [ ] Settings save automatically, including rapid changes; startup registration follows the startup preference.
 - [ ] Native sound playback works before the first pet click; mute and volume work.
 - [ ] New chat uses the selected project and clicking a card resumes the correct conversation.

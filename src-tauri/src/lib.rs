@@ -22,6 +22,7 @@ struct AppState {
     notifications: Mutex<notifications::Notifications>,
     navigation: Mutex<navigation::Navigation>,
     update: Mutex<Option<updates::UpdateInfo>>,
+    update_busy: std::sync::atomic::AtomicBool,
 }
 
 #[derive(serde::Serialize)]
@@ -118,11 +119,7 @@ pub fn run() {
             updates::check_on_open(app.handle());
             Ok(())
         })
-        .on_menu_event(|app, event| {
-            if event.id.as_ref() == "settings" {
-                let _ = lifecycle::show_settings(app.clone());
-            }
-        })
+        .on_menu_event(|app, event| lifecycle::handle_menu(app, event.id.as_ref()))
         .invoke_handler(tauri::generate_handler![
             snapshot,
             dismiss_chat,

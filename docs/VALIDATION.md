@@ -23,10 +23,11 @@
 - [ ] Ability, run, idle, attacks, sleep, and reduced motion render correctly.
 - [ ] Drag versus click is distinct; all four edges snap; display positions survive restart.
 - [ ] Transparent areas pass clicks through; visible controls remain usable.
-- [ ] Tray and hotkey toggle visibility; only Settings appears in right-click menus.
+- [ ] Tray and hotkey toggle visibility; both right-click menus offer Settings and update actions.
 - [ ] Settings persist; startup registration follows the startup preference.
 - [ ] Native sound playback works before the first pet click; mute and volume work.
 - [ ] New chat uses the selected project and clicking a card resumes the correct conversation.
+- [ ] Install update verifies the checksum, launches the installer before exiting, and stays open on failure.
 - [ ] Update check reports latest version, network errors, and no-release state honestly.
 
 Multi-monitor hotplug/DPI changes and the installed startup flow need testing on representative Windows hardware. Public release download detection requires a published GitHub release. Terminal chat navigation resumes in a new tab instead of focusing an existing one.

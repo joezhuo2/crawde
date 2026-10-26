@@ -75,11 +75,60 @@ pub fn set_visibility(app: AppHandle, visible: bool) -> Result<(), String> {
     preferences::persist(&app, &updated)
 }
 
+pub fn context_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
+    let settings = MenuItem::with_id(app, "settings", "Settings…", true, None::<&str>)?;
+    let busy = app
+        .state::<AppState>()
+        .update_busy
+        .load(std::sync::atomic::Ordering::SeqCst);
+    let check = MenuItem::with_id(
+        app,
+        "check_updates",
+        "Check for updates",
+        !busy,
+        None::<&str>,
+    )?;
+    let install = MenuItem::with_id(
+        app,
+        "install_update",
+        "Close + install latest update",
+        !busy,
+        None::<&str>,
+    )?;
+    let menu = Menu::with_items(app, &[&settings, &check, &install])?;
+    let update = app.state::<AppState>().update.lock().unwrap().clone();
+    if let Some(info) = update {
+        menu.append(&MenuItem::with_id(
+            app,
+            "update_status",
+            &info.message,
+            false,
+            None::<&str>,
+        )?)?;
+    }
+    Ok(menu)
+}
+
+pub fn refresh_menu(app: &AppHandle) {
+    if let (Some(tray), Ok(menu)) = (app.tray_by_id("crawde"), context_menu(app)) {
+        let _ = tray.set_menu(Some(menu));
+    }
+}
+
+pub fn handle_menu(app: &AppHandle, id: &str) {
+    match id {
+        "settings" => {
+            let _ = show_settings(app.clone());
+        }
+        "check_updates" => crate::updates::start(app, false),
+        "install_update" => crate::updates::start(app, true),
+        _ => {}
+    }
+}
+
 #[tauri::command]
 pub fn show_context_menu(app: AppHandle) -> Result<(), String> {
-    let item = MenuItem::with_id(&app, "settings", "Settings…", true, None::<&str>)
-        .map_err(|e| e.to_string())?;
-    let menu = Menu::with_items(&app, &[&item]).map_err(|e| e.to_string())?;
+    let menu = context_menu(&app).map_err(|e| e.to_string())?;
     let window = app
         .get_webview_window("pet")
         .ok_or("Pet window unavailable")?;
@@ -105,8 +154,7 @@ pub fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
                 let _ = toggle(app);
             }
         })?;
-    let item = MenuItem::with_id(app, "settings", "Settings…", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&item])?;
+    let menu = context_menu(app)?;
     TrayIconBuilder::with_id("crawde")
         .icon(tauri::image::Image::from_bytes(include_bytes!(
             "../icons/tray.png"
@@ -124,11 +172,6 @@ pub fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
                 }
             ) {
                 let _ = toggle(tray.app_handle());
-            }
-        })
-        .on_menu_event(|app, event| {
-            if event.id.as_ref() == "settings" {
-                let _ = show_settings(app.clone());
             }
         })
         .build(app)?;

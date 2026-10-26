@@ -1,6 +1,6 @@
 [package]
 name = "crawde"
-version = "0.1.0"
+version = "0.1.2"
 description = "A small crab companion for Claude Code"
 authors = ["Joe"]
 edition = "2021"

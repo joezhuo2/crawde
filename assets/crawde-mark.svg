@@ -1,5 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Crawde crab claw">
-  <path d="M44 96L45 113Q64 121 83 113L84 96C106 89 118 72 116 51C115 37 107 26 98 21L97 43C96 55 89 63 79 64L65 55C57 48 54 37 52 25C51 17 47 10 42 9C39 8 36 11 37 15L37 33C25 39 18 49 17 62C16 78 26 92 44 96Z" fill="#f18b60" stroke="#6d3428" stroke-width="3" stroke-linejoin="round"/>
-  <path d="M45 98Q64 106 83 98L82 112Q64 119 46 112Z" fill="#cf6846"/>
-  <path d="M37 47C29 52 25 59 25 67C25 75 30 82 37 86" fill="none" stroke="#ffc4a0" stroke-width="6" stroke-linecap="round"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Crawde crab claw"><g transform="rotate(60 64 64)">
+  <path d="M39 96L22 85L13 68L15 49L26 36L36 31L34 12L40 6L49 16L56 32L61 47L70 56L79 56L89 50L96 38L96 18L106 26L117 43L121 59L117 75L105 89L85 99L82 114L67 121L47 115L43 101Z" fill="#9f2f2f" stroke="#3d0c0c" stroke-width="3" stroke-linejoin="miter"/>
+  <path d="M44 98L63 105L83 99L81 113L67 119L48 113Z" fill="#661a1a"/>
+  <path d="M25 48L36 40L43 46L30 56L29 69L39 82L33 86L22 73L21 61Z" fill="#b03e3e"/>
+  <path d="M40 13L48 24L54 39L56 48L47 42L43 27Z" fill="#c44848"/>
+  <path d="M103 30L111 45L114 60L109 73L103 78L106 59Z" fill="#922727"/>
+  <path d="M39 88L57 95L78 94L95 85L87 96L78 102L63 102L47 98Z" fill="#661a1a"/>
+</g></svg>

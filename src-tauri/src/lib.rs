@@ -4,6 +4,7 @@ mod position;
 mod preferences;
 mod lifecycle;
 mod notifications;
+mod navigation;
 
 use std::sync::Mutex;
 use tauri::{Manager, State};
@@ -16,6 +17,7 @@ struct AppState {
     preferences: Mutex<preferences::Preferences>,
     lifecycle: Mutex<lifecycle::Lifecycle>,
     notifications: Mutex<notifications::Notifications>,
+    navigation: Mutex<navigation::Navigation>,
 }
 
 #[derive(serde::Serialize)]
@@ -60,6 +62,7 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_autostart::Builder::new().args(["--background"]).build())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(tauri_plugin_opener::init())
         .manage(AppState::default())
         .setup(|app| {
             if let Err(error) = bridge::start(app.handle().clone()) {
@@ -71,7 +74,7 @@ pub fn run() {
             Ok(())
         })
         .on_menu_event(|app, event| { if event.id.as_ref() == "settings" { let _ = lifecycle::show_settings(app.clone()); } })
-        .invoke_handler(tauri::generate_handler![snapshot, bridge::configure_hooks, position::drag_start, position::drag_move, position::drag_end, position::hit_regions, position::set_interacting, position::roam, lifecycle::show_settings, lifecycle::show_context_menu, lifecycle::quit, lifecycle::close_settings, preferences::save_preferences, notifications::test_sound])
+        .invoke_handler(tauri::generate_handler![snapshot, bridge::configure_hooks, position::drag_start, position::drag_move, position::drag_end, position::hit_regions, position::set_interacting, position::roam, lifecycle::show_settings, lifecycle::show_context_menu, lifecycle::quit, lifecycle::close_settings, preferences::save_preferences, notifications::test_sound, navigation::open_chat, navigation::new_chat])
         .run(tauri::generate_context!())
         .expect("Crawde could not start");
 }

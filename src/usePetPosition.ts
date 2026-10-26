@@ -40,7 +40,7 @@ export function usePetPosition(interacting: boolean, roaming: boolean, onAbility
       });
     };
     const observer = new MutationObserver(send);
-    observer.observe(document.getElementById('root')!, { childList: true, subtree: true, attributes: true });
+    observer.observe(document.getElementById('root')!, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
     const timer = window.setInterval(send, 250);
     send();
     return () => { observer.disconnect(); window.clearInterval(timer); cancelAnimationFrame(frame); };

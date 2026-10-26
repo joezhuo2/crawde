@@ -1,5 +1,6 @@
 import { Bell, Plus, PushPin, Gear } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
+import { listen } from '@tauri-apps/api/event';
 import { Sprite } from './Sprite';
 import { ChatBubbles } from './ChatBubbles';
 import { useActivity } from './useActivity';
@@ -15,6 +16,13 @@ export function App() {
   const [opened, setOpened] = useState(false);
   const [notice, setNotice] = useState('');
   const expanded = hovered || pinned || opened;
+  useEffect(() => {
+    if (!native) return;
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+    void listen<boolean>('pet-hover', event => setHovered(event.payload)).then(stop => { if (disposed) stop(); else unlisten = stop; });
+    return () => { disposed = true; unlisten?.(); };
+  }, []);
   const preferences = activity.preferences ?? defaults;
   const behavior = useBehavior(activity.sessions, activity.claudeOpen ?? !native, preferences.reducedMotion, activity.lastPromptAt);
   const position = usePetPosition(expanded, preferences.roaming && !behavior.sleeping && !behavior.reduced && behavior.animation === 'idle', behavior.ability);

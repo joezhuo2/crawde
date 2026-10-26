@@ -1,7 +1,7 @@
 use crate::AppState;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use tauri::{AppHandle, Manager, PhysicalPosition, State};
+use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, State};
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct SavedPosition {
@@ -295,14 +295,17 @@ pub fn start_hit_testing(app: AppHandle) {
             let state = app.state::<AppState>();
             let position = state.position.lock().unwrap();
             let inside = position.drag.is_some()
-                || position
-                    .regions
-                    .iter()
-                    .any(|r| x >= r.x && y >= r.y && x <= r.x + r.width && y <= r.y + r.height);
+                || position.regions.iter().any(|r| {
+                    x >= r.x - 6.0
+                        && y >= r.y - 6.0
+                        && x <= r.x + r.width + 6.0
+                        && y <= r.y + r.height + 6.0
+                });
             drop(position);
             if ignored == inside {
                 if window.set_ignore_cursor_events(!inside).is_ok() {
                     ignored = !inside;
+                    let _ = app.emit_to("pet", "pet-hover", inside);
                 }
             }
         }

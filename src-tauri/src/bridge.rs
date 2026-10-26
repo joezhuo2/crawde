@@ -56,6 +56,7 @@ pub fn start(app: AppHandle) -> Result<(), String> {
                     }
                 };
             // Observational hooks must never return a Claude permission decision.
+            if status == 200 { crate::notifications::tick(&app); }
             let response = Response::from_string("{}").with_status_code(StatusCode(status))
                 .with_header(Header::from_bytes("Content-Type", "application/json").unwrap());
             let _ = request.respond(response);

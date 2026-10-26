@@ -57,7 +57,7 @@ export function Settings() {
           <Toggle label="Finished a response" checked={preferences.completionSound} onChange={v => set('completionSound', v)} />
           <Toggle label="Errors" checked={preferences.errorSound} onChange={v => set('errorSound', v)} />
           <Toggle label="Approval reminders" detail="A quiet reminder every 45 seconds." checked={preferences.reminders} onChange={v => set('reminders', v)} />
-          <button type="button" className="secondary-button" onClick={() => window.dispatchEvent(new CustomEvent('crawde:test-sound', { detail: preferences }))}>Test sound</button>
+          <button type="button" className="secondary-button" onClick={() => void act('test_sound', { preferences })}>Test sound</button>
         </>}
         {tab === 'claude' && <>
           <h2>Connected to your work</h2>

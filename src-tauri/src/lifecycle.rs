@@ -31,8 +31,8 @@ pub fn toggle(app: &AppHandle) -> Result<(), String> {
 pub fn show_context_menu(app: AppHandle) -> Result<(), String> {
     let item = MenuItem::with_id(&app, "settings", "Settings…", true, None::<&str>).map_err(|e| e.to_string())?;
     let menu = Menu::with_items(&app, &[&item]).map_err(|e| e.to_string())?;
-    let window = app.get_webview_window("pet").ok_or("Pet window unavailable")?;
-    menu.popup(window.as_ref().clone()).map_err(|e| e.to_string())
+    let window = app.get_window("pet").ok_or("Pet window unavailable")?;
+    menu.popup(window).map_err(|e| e.to_string())
 }
 
 pub fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
@@ -83,6 +83,7 @@ fn start_presence(app: AppHandle) {
                 let keys = format!("{monitors:?}");
                 if keys != display_keys { let _ = crate::position::restore(&app); display_keys = keys; }
             }
+            crate::notifications::tick(&app);
             std::thread::sleep(std::time::Duration::from_secs(3));
         }
     });

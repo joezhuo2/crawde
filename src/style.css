@@ -1,7 +1,50 @@
-:root { font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif; color: #292724; background: transparent; }
+:root { font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif; color: #292724; background: transparent; --surface: #fcfbf9; --ink: #292724; --muted: #65615c; --line: #dedbd5; --accent: #b6532e; --tint: #fff0e7; --control: #f2efea; color-scheme: light dark; }
 * { box-sizing: border-box; }
 html, body, #root { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
 button, input, select { font: inherit; }
+button { color: inherit; cursor: pointer; }
+button:disabled { opacity: .35; cursor: default; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.pet-scene { width: 350px; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; padding: 8px 12px 6px; gap: 6px; user-select: none; }
+.chat-list { width: 100%; flex-shrink: 0; height: 140px; }
+.list-heading { height: 26px; display: flex; justify-content: space-between; align-items: center; padding: 0 4px; font-size: 11px; color: var(--muted); opacity: 0; pointer-events: none; }
+.expanded .list-heading { opacity: 1; pointer-events: auto; }
+.bubbles { height: 90px; position: relative; }
+.chat-bubble { position: absolute; left: 0; top: 0; width: 100%; min-height: 42px; padding: 11px 14px; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 3px 12px #221c1609; transform: translateY(calc(var(--index) * 25px)) scale(calc(1 - var(--index) * .025)); transform-origin: center bottom; z-index: calc(4 - var(--index)); transition: transform 220ms cubic-bezier(.2,.8,.2,1), background 160ms; }
+.chat-bubble.approval { background: var(--tint); border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.chat-bubble:hover { border-color: var(--accent); }
+.chat-title { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; line-height: 18px; font-weight: 650; }
+.chat-title > span { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.chat-title svg { flex-shrink: 0; color: #43774d; margin-top: 2px; }
+.separator { color: var(--muted); font-weight: 400; }
+.chat-details { display: none; padding-top: 5px; }
+.chat-activity, .chat-meta { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12px; line-height: 18px; }
+.chat-meta { font-size: 11px; }
+.chat-list.expanded { height: 326px; }
+.expanded .bubbles { height: 276px; }
+.expanded .chat-bubble { height: 86px; transform: translateY(calc(var(--index) * 92px)); }
+.expanded .chat-details { display: block; }
+.expanded .chat-title > span { -webkit-line-clamp: 1; }
+.pagination { height: 24px; display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 11px; color: var(--muted); }
+.collapsed .pagination { position: relative; margin-top: 4px; }
+.icon-button { border: 0; background: transparent; display: inline-flex; justify-content: center; align-items: center; padding: 6px; border-radius: 6px; color: var(--muted); }
+.icon-button:hover { background: var(--control); color: var(--ink); }
+.pet-anchor { position: relative; display: flex; flex-direction: column; align-items: center; margin-left: 4px; flex-shrink: 0; }
+.pet-button { border: 0; background: transparent; padding: 0; touch-action: none; cursor: grab; }
+.pet-button:active { cursor: grabbing; }
+.pet-controls { display: flex; gap: 3px; height: 30px; opacity: 0; pointer-events: none; transition: opacity 160ms, transform 160ms; transform: translateY(-4px); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.is-expanded .pet-controls { opacity: 1; pointer-events: auto; transform: translateY(0); }
+.pin-indicator { align-self: center; color: var(--accent); margin-right: 7px; }
+.notification-button { position: relative; }
+.notification-button i { width: 5px; height: 5px; background: var(--accent); border-radius: 50%; position: absolute; right: 4px; top: 4px; }
+.notice, .connect-bubble { font-size: 12px; line-height: 17px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px; width: 100%; overflow-wrap: anywhere; }
+.connect-bubble { text-align: left; font-weight: 600; }
+.connect-bubble span { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
+.preview-label { position: fixed; top: 18px; left: 20px; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.muted { color: var(--muted); }
+@media (prefers-color-scheme: dark) { :root { --surface: #282623; --ink: #f0ede8; --muted: #b5afa6; --line: #47423c; --accent: #ed9a6f; --tint: #3e2d24; --control: #36322d; color: var(--ink); } }
+[data-theme='light'] { --surface: #fcfbf9; --ink: #292724; --muted: #65615c; --line: #dedbd5; --accent: #b6532e; --tint: #fff0e7; --control: #f2efea; color: var(--ink); color-scheme: light; }
+[data-theme='dark'] { --surface: #282623; --ink: #f0ede8; --muted: #b5afa6; --line: #47423c; --accent: #ed9a6f; --tint: #3e2d24; --control: #36322d; color: var(--ink); color-scheme: dark; }
 .sprite-wrap { display: block; position: relative; }
 .sprite { display: block; image-rendering: pixelated; background-repeat: no-repeat; }
 .sleep { position: absolute; top: 0; right: 0; font-size: 13px; color: #77716a; animation: doze 3s ease-in-out infinite; pointer-events: none; }

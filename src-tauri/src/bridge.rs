@@ -44,10 +44,10 @@ pub fn start(app: AppHandle) -> Result<(), String> {
                             match serde_json::from_str::<HookEvent>(&body) {
                                 Ok(event) if EVENTS.contains(&event.hook_event_name.as_str()) => {
                                     let state = app.state::<AppState>();
-                                    match state.activity.lock() {
+                                    let status = match state.activity.lock() {
                                         Ok(mut activity) => if activity.apply(event, now()).is_ok() { 200 } else { 400 },
                                         Err(_) => 500,
-                                    }
+                                    }; status
                                 }
                                 _ => 400,
                             }

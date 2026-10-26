@@ -1,5 +1,5 @@
 use std::{path::PathBuf, process::Command};
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, State};
 use tauri_plugin_opener::OpenerExt;
 use crate::AppState;
 

@@ -8,6 +8,7 @@ pub struct Lifecycle { pub claude_open: bool }
 
 #[tauri::command]
 pub fn show_settings(app: AppHandle) -> Result<(), String> {
+    crate::updates::check_on_open(&app);
     if let Some(window) = app.get_webview_window("settings") {
         window.show().map_err(|e| e.to_string())?;
         return window.set_focus().map_err(|e| e.to_string());
@@ -31,8 +32,8 @@ pub fn toggle(app: &AppHandle) -> Result<(), String> {
 pub fn show_context_menu(app: AppHandle) -> Result<(), String> {
     let item = MenuItem::with_id(&app, "settings", "Settings…", true, None::<&str>).map_err(|e| e.to_string())?;
     let menu = Menu::with_items(&app, &[&item]).map_err(|e| e.to_string())?;
-    let window = app.get_window("pet").ok_or("Pet window unavailable")?;
-    menu.popup(window).map_err(|e| e.to_string())
+    let window = app.get_webview_window("pet").ok_or("Pet window unavailable")?;
+    menu.popup(window.as_ref().window()).map_err(|e| e.to_string())
 }
 
 pub fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {

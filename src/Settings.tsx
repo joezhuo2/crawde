@@ -75,6 +75,7 @@ export function Settings() {
           <p className="settings-note">Crawde 0.1.0 · Made for Claude Code on Windows.<br />Your activity stays on this computer.</p>
           <Toggle label="Check for updates on open" detail="Checks GitHub releases. Installation is manual." checked={preferences.checkOnOpen} onChange={v => set('checkOnOpen', v)} />
           <button type="button" className="secondary-button" disabled={busy} onClick={() => void act('check_updates', undefined, 'Update check complete.')}>Check for updates</button>
+          {activity.update && <p className="settings-note" role="status">{activity.update.message}</p>}
           <button type="button" className="text-button" onClick={() => void act('open_releases')}>View releases <ArrowSquareOut size={14} /></button>
           <div className="quit-section"><button type="button" className="text-button" onClick={() => void act('quit')}>Quit Crawde</button><small>Stops the tray app until its next launch.</small></div>
         </>}

@@ -5,6 +5,7 @@ mod preferences;
 mod lifecycle;
 mod notifications;
 mod navigation;
+mod updates;
 
 use std::sync::Mutex;
 use tauri::{Manager, State};
@@ -18,6 +19,7 @@ struct AppState {
     lifecycle: Mutex<lifecycle::Lifecycle>,
     notifications: Mutex<notifications::Notifications>,
     navigation: Mutex<navigation::Navigation>,
+    update: Mutex<Option<updates::UpdateInfo>>,
 }
 
 #[derive(serde::Serialize)]
@@ -31,6 +33,7 @@ struct Snapshot {
     claude_open: bool,
     preferences: preferences::Preferences,
     last_prompt_at: u64,
+    update: Option<updates::UpdateInfo>,
 }
 
 #[tauri::command]
@@ -46,6 +49,7 @@ fn snapshot(state: State<AppState>) -> Result<Snapshot, String> {
     Ok(Snapshot {
         sessions,
         last_prompt_at,
+        update: state.update.lock().map_err(|e| e.to_string())?.clone(),
         hooks_installed: bridge::installed(),
         bridge_error: state.bridge_error.lock().map_err(|e| e.to_string())?.clone(),
         dock_right,
@@ -71,10 +75,11 @@ pub fn run() {
             position::initialize(app.handle())?;
             position::start_hit_testing(app.handle().clone());
             lifecycle::setup(app.handle())?;
+            updates::check_on_open(app.handle());
             Ok(())
         })
         .on_menu_event(|app, event| { if event.id.as_ref() == "settings" { let _ = lifecycle::show_settings(app.clone()); } })
-        .invoke_handler(tauri::generate_handler![snapshot, bridge::configure_hooks, position::drag_start, position::drag_move, position::drag_end, position::hit_regions, position::set_interacting, position::roam, lifecycle::show_settings, lifecycle::show_context_menu, lifecycle::quit, lifecycle::close_settings, preferences::save_preferences, notifications::test_sound, navigation::open_chat, navigation::new_chat])
+        .invoke_handler(tauri::generate_handler![snapshot, bridge::configure_hooks, position::drag_start, position::drag_move, position::drag_end, position::hit_regions, position::set_interacting, position::roam, lifecycle::show_settings, lifecycle::show_context_menu, lifecycle::quit, lifecycle::close_settings, preferences::save_preferences, notifications::test_sound, navigation::open_chat, navigation::new_chat, updates::check_updates, updates::open_releases])
         .run(tauri::generate_context!())
         .expect("Crawde could not start");
 }

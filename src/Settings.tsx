@@ -22,15 +22,14 @@ export function Settings() {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const preferences = draft ?? defaults;
-  const pending = useRef(new Map<keyof Preferences, { value: Preferences[keyof Preferences]; saved: boolean }>());
+  const pending = useRef(new Map<keyof Preferences, { value: Preferences[keyof Preferences] }>());
   const [saving, setSaving] = useState(0);
   const [hotkey, setHotkey] = useState<string | null>(null);
   useEffect(() => {
     if (!activity.preferences) return;
     const next = { ...activity.preferences };
     for (const [key, edit] of pending.current) {
-      if (edit.saved && next[key] === edit.value) pending.current.delete(key);
-      else Object.assign(next, { [key]: edit.value });
+      Object.assign(next, { [key]: edit.value });
     }
     setDraft(next);
   }, [activity.preferences]);
@@ -39,13 +38,13 @@ export function Settings() {
     setDraft(p => ({ ...(p ?? defaults), [key]: value }));
     setMessage('');
     if (!native) return;
-    const edit = { value, saved: false };
+    const edit = { value };
     pending.current.set(key, edit);
     setSaving(n => n + 1);
     void (async () => {
       try {
         await command('update_preference', { key, value });
-        edit.saved = true;
+        if (pending.current.get(key) === edit) pending.current.delete(key);
       } catch (error) {
         if (pending.current.get(key) === edit) pending.current.delete(key);
         setMessage(`Could not save: ${String(error)}`);

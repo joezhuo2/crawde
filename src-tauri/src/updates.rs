@@ -22,7 +22,7 @@ struct Release {
 pub async fn check_updates(app: AppHandle) -> Result<UpdateInfo, String> {
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(12))
-        .user_agent("Crawde/0.1.0")
+        .user_agent(format!("Crawde/{}", env!("CARGO_PKG_VERSION")))
         .build()
         .map_err(|e| e.to_string())?;
     let response = client

@@ -5,6 +5,7 @@ import { useActivity } from './useActivity';
 import { command, native } from './native';
 import { Sprite } from './Sprite';
 import { SettingsSkeleton } from './SettingsSkeleton';
+import { version } from '../package.json';
 
 function Toggle({ label, detail, checked, disabled, onChange }: { label: string; detail?: string; checked: boolean; disabled?: boolean; onChange: (v: boolean) => void }) {
   return <label className="setting-row"><span>{label}{detail && <small>{detail}</small>}</span><input className="toggle" type="checkbox" checked={checked} disabled={disabled} onChange={e => onChange(e.target.checked)} /></label>;
@@ -88,7 +89,7 @@ export function Settings() {
         </>}
         {tab === 'about' && <>
           <h2>Small crab. Big company.</h2>
-          <p className="settings-note">Crawde 0.1.0 · Made for Claude Code on Windows.<br />Your activity stays on this computer.</p>
+          <p className="settings-note">Crawde {version} · Made for Claude Code on Windows.<br />Your activity stays on this computer.</p>
           <Toggle label="Check for updates on open" detail="Checks GitHub releases. Installation is manual." checked={preferences.checkOnOpen} onChange={v => set('checkOnOpen', v)} />
           <button type="button" className="secondary-button" disabled={busy} onClick={() => void act('check_updates', undefined, 'Update check complete.')}>Check for updates</button>
           {activity.update && <p className="settings-note" role="status">{activity.update.message}</p>}

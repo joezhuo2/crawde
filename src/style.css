@@ -6,11 +6,11 @@ button { color: inherit; cursor: pointer; }
 button:disabled { opacity: .35; cursor: default; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .pet-scene { width: 350px; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; padding: 8px 12px 6px; gap: 6px; user-select: none; }
-.chat-list { width: 100%; flex-shrink: 0; height: calc(92px + (var(--count) - 1) * 32px); }
-.list-heading { height: 26px; display: flex; justify-content: space-between; align-items: center; padding: 0 4px; font-size: 11px; color: var(--muted); opacity: 0; pointer-events: none; }
+.chat-list { width: 100%; flex-shrink: 0; height: calc(92px + (var(--count) - 1) * 32px); transition: height 440ms cubic-bezier(.22,.68,.2,1); }
+.list-heading { height: 26px; display: flex; justify-content: space-between; align-items: center; padding: 0 4px; font-size: 11px; color: var(--muted); opacity: 0; pointer-events: none; transition: opacity 320ms; }
 .expanded .list-heading { opacity: 1; pointer-events: auto; }
-.bubbles { height: calc(42px + (var(--count) - 1) * 32px); position: relative; }
-.chat-bubble { position: absolute; left: 0; top: 0; width: 100%; min-height: 42px; padding: 11px 14px; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 3px 12px #221c1609; transform: translateY(calc(var(--index) * 32px)) scale(calc(1 - var(--index) * .025)); transform-origin: center bottom; z-index: calc(4 - var(--index)); transition: transform 220ms cubic-bezier(.2,.8,.2,1), background 160ms; }
+.bubbles { height: calc(42px + (var(--count) - 1) * 32px); position: relative; transition: height 440ms cubic-bezier(.22,.68,.2,1); }
+.chat-bubble { position: absolute; left: 0; top: 0; width: 100%; height: 42px; min-height: 42px; padding: 11px 14px; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 3px 12px #221c1609; transform: translateY(calc(var(--index) * 32px)) scale(calc(1 - var(--index) * .025)); transform-origin: center bottom; z-index: calc(4 - var(--index)); transition: transform 440ms cubic-bezier(.22,.68,.2,1), height 440ms cubic-bezier(.22,.68,.2,1), background 160ms; }
 .chat-bubble.approval { background: var(--tint); border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
 .chat-bubble { padding: 0; }
 .chat-open { display: block; width: 100%; height: 100%; padding: 11px 14px; text-align: left; color: inherit; background: transparent; border: 0; border-radius: inherit; }
@@ -21,13 +21,13 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .chat-title > span { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
 .chat-title svg { flex-shrink: 0; color: #43774d; margin-top: 2px; }
 .separator { color: var(--muted); font-weight: 400; }
-.chat-details { display: none; padding-top: 5px; }
+.chat-details { display: block; max-height: 0; padding-top: 0; opacity: 0; overflow: hidden; transition: max-height 440ms, padding-top 440ms, opacity 280ms; }
 .chat-activity, .chat-meta { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12px; line-height: 18px; }
 .chat-meta { font-size: 11px; }
 .chat-list.expanded { height: calc(var(--count) * 92px + 50px); }
 .expanded .bubbles { height: calc(var(--count) * 92px); }
 .expanded .chat-bubble { height: 86px; transform: translateY(calc(var(--index) * 92px)); }
-.expanded .chat-details { display: block; }
+.expanded .chat-details { max-height: 41px; padding-top: 5px; opacity: 1; }
 .expanded .chat-title > span { -webkit-line-clamp: 1; }
 .pagination { height: 24px; display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 11px; color: var(--muted); }
 .collapsed .pagination { position: relative; margin-top: 4px; }
@@ -36,7 +36,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .pet-anchor { position: relative; display: flex; flex-direction: column; align-items: center; margin-left: 4px; flex-shrink: 0; }
 .pet-button { border: 0; background: transparent; padding: 0; touch-action: none; cursor: grab; }
 .pet-button:active { cursor: grabbing; }
-.pet-controls { display: flex; gap: 3px; height: 30px; opacity: 0; pointer-events: none; transition: opacity 160ms, transform 160ms; transform: translateY(-4px); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.pet-controls { display: flex; gap: 3px; height: 30px; opacity: 0; pointer-events: none; transition: opacity 280ms, transform 440ms; transform: translateY(-4px); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
 .is-expanded .pet-controls { opacity: 1; pointer-events: auto; transform: translateY(0); }
 .pin-indicator { align-self: center; color: var(--accent); margin-right: 7px; }
 .notification-button { position: relative; }

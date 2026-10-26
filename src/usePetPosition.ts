@@ -33,7 +33,7 @@ export function usePetPosition(interacting: boolean, roaming: boolean, onAbility
     const send = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        const regions = Array.from(document.querySelectorAll('.pet-anchor, .chat-bubble, .list-heading, .pagination, .notice, .connect-bubble'))
+        const regions = Array.from(document.querySelectorAll('.pet-anchor, .chat-list.expanded, .chat-bubble, .list-heading, .pagination, .notice, .connect-bubble'))
           .filter(node => getComputedStyle(node).opacity !== '0')
           .map(node => { const r = node.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; });
         void command('hit_regions', { regions }).catch(() => {});

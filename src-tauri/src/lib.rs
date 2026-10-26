@@ -1,10 +1,10 @@
 mod activity;
 mod bridge;
+mod lifecycle;
+mod navigation;
+mod notifications;
 mod position;
 mod preferences;
-mod lifecycle;
-mod notifications;
-mod navigation;
 mod updates;
 
 use std::sync::Mutex;
@@ -51,10 +51,18 @@ fn snapshot(state: State<AppState>) -> Result<Snapshot, String> {
         last_prompt_at,
         update: state.update.lock().map_err(|e| e.to_string())?.clone(),
         hooks_installed: bridge::installed(),
-        bridge_error: state.bridge_error.lock().map_err(|e| e.to_string())?.clone(),
+        bridge_error: state
+            .bridge_error
+            .lock()
+            .map_err(|e| e.to_string())?
+            .clone(),
         dock_right,
         dock_top,
-        claude_open: state.lifecycle.lock().map_err(|e| e.to_string())?.claude_open,
+        claude_open: state
+            .lifecycle
+            .lock()
+            .map_err(|e| e.to_string())?
+            .claude_open,
         preferences: state.preferences.lock().map_err(|e| e.to_string())?.clone(),
     })
 }
@@ -62,9 +70,15 @@ fn snapshot(state: State<AppState>) -> Result<Snapshot, String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _| {
-            if !args.iter().any(|arg| arg == "--background") { let _ = lifecycle::show_settings(app.clone()); }
+            if !args.iter().any(|arg| arg == "--background") {
+                let _ = lifecycle::show_settings(app.clone());
+            }
         }))
-        .plugin(tauri_plugin_autostart::Builder::new().args(["--background"]).build())
+        .plugin(
+            tauri_plugin_autostart::Builder::new()
+                .args(["--background"])
+                .build(),
+        )
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .manage(AppState::default())
@@ -78,8 +92,31 @@ pub fn run() {
             updates::check_on_open(app.handle());
             Ok(())
         })
-        .on_menu_event(|app, event| { if event.id.as_ref() == "settings" { let _ = lifecycle::show_settings(app.clone()); } })
-        .invoke_handler(tauri::generate_handler![snapshot, bridge::configure_hooks, position::drag_start, position::drag_move, position::drag_end, position::hit_regions, position::set_interacting, position::roam, lifecycle::show_settings, lifecycle::show_context_menu, lifecycle::quit, lifecycle::close_settings, preferences::save_preferences, notifications::test_sound, navigation::open_chat, navigation::new_chat, updates::check_updates, updates::open_releases])
+        .on_menu_event(|app, event| {
+            if event.id.as_ref() == "settings" {
+                let _ = lifecycle::show_settings(app.clone());
+            }
+        })
+        .invoke_handler(tauri::generate_handler![
+            snapshot,
+            bridge::configure_hooks,
+            position::drag_start,
+            position::drag_move,
+            position::drag_end,
+            position::hit_regions,
+            position::set_interacting,
+            position::roam,
+            lifecycle::show_settings,
+            lifecycle::show_context_menu,
+            lifecycle::quit,
+            lifecycle::close_settings,
+            preferences::save_preferences,
+            notifications::test_sound,
+            navigation::open_chat,
+            navigation::new_chat,
+            updates::check_updates,
+            updates::open_releases
+        ])
         .run(tauri::generate_context!())
         .expect("Crawde could not start");
 }

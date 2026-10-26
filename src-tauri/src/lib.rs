@@ -30,12 +30,16 @@ struct Snapshot {
 
 #[tauri::command]
 fn snapshot(state: State<AppState>) -> Result<Snapshot, String> {
+    let (dock_right, dock_top) = {
+        let position = state.position.lock().map_err(|e| e.to_string())?;
+        (position.right, position.top)
+    };
     Ok(Snapshot {
         sessions: state.activity.lock().map_err(|e| e.to_string())?.visible(bridge::now()),
         hooks_installed: bridge::installed(),
         bridge_error: state.bridge_error.lock().map_err(|e| e.to_string())?.clone(),
-        dock_right: state.position.lock().map_err(|e| e.to_string())?.right,
-        dock_top: state.position.lock().map_err(|e| e.to_string())?.top,
+        dock_right,
+        dock_top,
         claude_open: state.lifecycle.lock().map_err(|e| e.to_string())?.claude_open,
         preferences: state.preferences.lock().map_err(|e| e.to_string())?.clone(),
     })
@@ -59,7 +63,7 @@ pub fn run() {
             Ok(())
         })
         .on_menu_event(|app, event| { if event.id.as_ref() == "settings" { let _ = lifecycle::show_settings(app.clone()); } })
-        .invoke_handler(tauri::generate_handler![snapshot, bridge::configure_hooks, position::drag_start, position::drag_move, position::drag_end, position::hit_regions, position::set_interacting, position::roam, lifecycle::show_settings, lifecycle::show_context_menu, lifecycle::quit])
+        .invoke_handler(tauri::generate_handler![snapshot, bridge::configure_hooks, position::drag_start, position::drag_move, position::drag_end, position::hit_regions, position::set_interacting, position::roam, lifecycle::show_settings, lifecycle::show_context_menu, lifecycle::quit, lifecycle::close_settings, preferences::save_preferences])
         .run(tauri::generate_context!())
         .expect("Crawde could not start");
 }

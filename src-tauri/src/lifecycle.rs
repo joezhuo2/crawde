@@ -90,3 +90,8 @@ fn start_presence(app: AppHandle) {
 
 #[tauri::command]
 pub fn quit(app: AppHandle) { app.exit(0); }
+
+#[tauri::command]
+pub fn close_settings(app: AppHandle) {
+    if let Some(window) = app.get_webview_window("settings") { let _ = window.close(); }
+}

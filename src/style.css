@@ -12,6 +12,10 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .bubbles { height: calc(42px + (var(--count) - 1) * 32px); position: relative; }
 .chat-bubble { position: absolute; left: 0; top: 0; width: 100%; min-height: 42px; padding: 11px 14px; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 3px 12px #221c1609; transform: translateY(calc(var(--index) * 32px)) scale(calc(1 - var(--index) * .025)); transform-origin: center bottom; z-index: calc(4 - var(--index)); transition: transform 220ms cubic-bezier(.2,.8,.2,1), background 160ms; }
 .chat-bubble.approval { background: var(--tint); border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.chat-bubble { padding: 0; }
+.chat-open { display: block; width: 100%; height: 100%; padding: 11px 14px; text-align: left; color: inherit; background: transparent; border: 0; border-radius: inherit; }
+.chat-close { position: absolute; right: 6px; top: 8px; padding: 5px; }
+.chat-open .chat-title { padding-right: 19px; }
 .chat-bubble:hover { border-color: var(--accent); }
 .chat-title { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; line-height: 18px; font-weight: 650; }
 .chat-title > span { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow-wrap: anywhere; }

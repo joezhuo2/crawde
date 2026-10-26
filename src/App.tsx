@@ -15,6 +15,8 @@ export function App() {
   const [pinned, setPinned] = useState(false);
   const [opened, setOpened] = useState(false);
   const [notice, setNotice] = useState('');
+  const [dismissed, setDismissed] = useState<Record<string, number>>({});
+  const sessions = activity.sessions.filter(s => dismissed[s.id] === undefined || s.lastPromptAt > dismissed[s.id]);
   const expanded = hovered || pinned || opened;
   useEffect(() => {
     if (!native) return;
@@ -30,10 +32,18 @@ export function App() {
   const act = async (name: string, args?: Record<string, unknown>) => {
     try { await command(name, args); setNotice(''); } catch (error) { setNotice(String(error)); }
   };
+  const dismissChat = async (id: string) => {
+    const session = activity.sessions.find(s => s.id === id);
+    if (!session) return;
+    try {
+      if (native) await command('dismiss_chat', { id });
+      setDismissed(current => ({ ...current, [id]: session.lastPromptAt }));
+    } catch (error) { setNotice(String(error)); }
+  };
   return <main className={`pet-scene ${expanded ? 'is-expanded' : ''} ${activity.dockRight ? 'dock-right' : ''} ${activity.dockTop ? 'dock-top' : ''}`} aria-label="Crawde desktop companion"
     onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
     onContextMenu={event => { event.preventDefault(); void act('show_context_menu'); }}>
-    <ChatBubbles sessions={activity.sessions} expanded={expanded} pinned={pinned} onPin={() => setPinned(p => !p)} onOpen={id => void act('open_chat', { id })} />
+    <ChatBubbles sessions={sessions} expanded={expanded} pinned={pinned} onPin={() => setPinned(p => !p)} onOpen={id => void act('open_chat', { id })} onDismiss={id => void dismissChat(id)} />
     {expanded && (activity.bridgeError || activity.connectionError || notice) && <div className="notice" role="status">{activity.bridgeError || activity.connectionError || notice}</div>}
     {expanded && !activity.hooksInstalled && native && <button className="connect-bubble" onClick={() => void act('configure_hooks', { install: true })}>Connect to Claude Code <span>Enable activity hooks</span></button>}
     <div className="pet-anchor">
@@ -41,8 +51,8 @@ export function App() {
         <Sprite animation={position.running ? 'run' : behavior.animation} scale={preferences.scale} reducedMotion={behavior.reduced} facing={position.facing} onComplete={behavior.complete} />
       </button>
       <div className="pet-controls" aria-hidden={!expanded}>
-        <button className="icon-button" tabIndex={expanded ? 0 : -1} title="New chat in current project" onClick={() => void act('new_chat', { id: activity.sessions[0]?.id ?? null })}><Plus size={18} weight="bold" /></button>
-        <button className="icon-button notification-button" tabIndex={expanded ? 0 : -1} title="Show current chats" aria-pressed={opened} onClick={() => setOpened(v => !v)}><Bell size={18} />{activity.sessions.some(s => s.status === 'approval') && <i />}</button>
+        <button className="icon-button" tabIndex={expanded ? 0 : -1} aria-label="New chat in current project" onClick={() => void act('new_chat', { id: activity.sessions[0]?.id ?? null })}><Plus size={18} weight="bold" /></button>
+        <button className="icon-button notification-button" tabIndex={expanded ? 0 : -1} aria-label="Show current chats" aria-pressed={opened} onClick={() => setOpened(v => !v)}><Bell size={18} />{sessions.some(s => s.status === 'approval') && <i />}</button>
         {pinned && <PushPin size={12} className="pin-indicator" />}
       </div>
     </div>

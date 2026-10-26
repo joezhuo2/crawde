@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Check, PushPin, PushPinSlash } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowRight, Check, PushPin, PushPinSlash, X } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import type { Session } from './types';
 
@@ -8,9 +8,10 @@ interface Props {
   pinned: boolean;
   onPin: () => void;
   onOpen: (id: string) => void;
+  onDismiss: (id: string) => void;
 }
 
-export function ChatBubbles({ sessions, expanded, pinned, onPin, onOpen }: Props) {
+export function ChatBubbles({ sessions, expanded, pinned, onPin, onOpen, onDismiss }: Props) {
   const [page, setPage] = useState(0);
   const pages = Math.max(1, Math.ceil(sessions.length / 3));
   useEffect(() => { setPage(p => Math.min(p, pages - 1)); }, [pages]);
@@ -25,8 +26,8 @@ export function ChatBubbles({ sessions, expanded, pinned, onPin, onOpen }: Props
       </button>
     </div>
     <div className="bubbles">
-      {visible.map((session, index) => <button key={session.id} className={`chat-bubble ${session.status}`} style={{ '--index': index } as React.CSSProperties}
-        onClick={() => onOpen(session.id)} title={`Open ${session.project} · ${session.title}`}>
+      {visible.map((session, index) => <article key={session.id} className={`chat-bubble ${session.status}`} style={{ '--index': index } as React.CSSProperties}>
+        <button className="chat-open" onClick={() => onOpen(session.id)} aria-label={`Open ${session.project} · ${session.title}`}>
         <span className="chat-title"><span>{session.project} <span className="separator">·</span> {session.title}</span>{session.status === 'done' && <Check weight="bold" size={15} />}</span>
         <span className="chat-details">
           <span className="chat-activity">{session.activity}</span>
@@ -34,7 +35,9 @@ export function ChatBubbles({ sessions, expanded, pinned, onPin, onOpen }: Props
             ? `🤝 ${session.agents.length} subagent${session.agents.length === 1 ? '' : 's'} running`
             : session.tool ? `🛠️ ${session.tool}` : session.status === 'done' ? '🌿 All wrapped up' : '💭 Working on your request'}</span>
         </span>
-      </button>)}
+        </button>
+        <button className="icon-button chat-close" aria-label={`Dismiss ${session.title}`} onClick={() => onDismiss(session.id)}><X size={12} weight="bold" /></button>
+      </article>)}
     </div>
     {pages > 1 && <nav className="pagination" aria-label="More chats">
       <button className="icon-button" disabled={page === 0} onClick={() => setPage(p => p - 1)} aria-label="Previous chats"><ArrowLeft size={14} /></button>

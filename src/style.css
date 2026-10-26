@@ -2,3 +2,9 @@
 * { box-sizing: border-box; }
 html, body, #root { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
 button, input, select { font: inherit; }
+.sprite-wrap { display: block; position: relative; }
+.sprite { display: block; image-rendering: pixelated; background-repeat: no-repeat; }
+.sleep { position: absolute; top: 0; right: 0; font-size: 13px; color: #77716a; animation: doze 3s ease-in-out infinite; pointer-events: none; }
+.sleep.bubble { border: 1px solid #a39c94; border-radius: 50%; padding: 3px 7px; }
+@keyframes doze { 50% { transform: translateY(-6px); opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }

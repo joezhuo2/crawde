@@ -1,0 +1,4 @@
+:root { font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif; color: #292724; background: transparent; }
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+button, input, select { font: inherit; }

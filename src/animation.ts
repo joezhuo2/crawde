@@ -5,17 +5,17 @@ import attackA from '../sprites/Crab_AttackA.png';
 import attackB from '../sprites/Crab_AttackB.png';
 
 export const animations = {
-  idle: { image: idle, frames: 4, columns: 4, fps: 8 },
+  idle: { image: idle, frames: 4, columns: 4, fps: 6 },
   run: { image: run, frames: 6, columns: 4, fps: 11 },
   ability: { image: ability, frames: 10, columns: 4, fps: 12 },
   attackA: { image: attackA, frames: 10, columns: 4, fps: 13 },
   attackB: { image: attackB, frames: 6, columns: 4, fps: 11 },
-  sleep: { image: idle, frames: 4, columns: 4, fps: .8 },
+  sleep: { image: idle, frames: 4, columns: 4, fps: 1 },
 } as const;
 
 export type Animation = keyof typeof animations;
 
 export function framePosition(frame: number, columns: number, scale: number) {
-  // All source cells are 64px; crop to the shared 32px character region.
-  return `${-(frame % columns * 64 + 16) * scale}px ${-(Math.floor(frame / columns) * 64 + 20) * scale}px`;
+  // Keep the shared 32×24 character region, excluding unused headroom.
+  return `${-(frame % columns * 64 + 16) * scale}px ${-(Math.floor(frame / columns) * 64 + 28) * scale}px`;
 }

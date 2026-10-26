@@ -35,16 +35,16 @@ export function Sprite({ animation, scale = 3, reducedMotion = false, facing = 1
     return () => window.clearInterval(timer);
   }, [animation, spec, reducedMotion, systemReduced, onComplete]);
 
-  return <span className="sprite-wrap" style={{ width: 32 * scale, height: 32 * scale }}>
+  return <span className="sprite-wrap" style={{ width: 32 * scale, height: 24 * scale }}>
     <span className="sprite" role="img" aria-label={`Crawde ${animation}`} style={{
-      width: 32 * scale, height: 32 * scale,
+      width: 32 * scale, height: 24 * scale,
       backgroundImage: `url(${spec.image})`,
       backgroundSize: `${spec.columns * 64 * scale}px auto`,
       backgroundPosition: framePosition(frame, spec.columns, scale),
       transform: `scaleX(${facing})`,
     }} />
     {animation === 'sleep' && <span className={`sleep-trail ${reducedMotion || systemReduced ? 'still' : ''}`} aria-hidden="true" style={{ left: facing > 0 ? '72%' : '24%', '--sleep-direction': facing } as React.CSSProperties}>
-      {[0, 1, 2].map(index => <span key={index} style={{ animationDelay: `${index * 1.2}s` }}>z</span>)}
+      {[0, 1, 2].map(index => <span key={index} style={{ animationDelay: `${index * 3.2 / 3}s` }}>z</span>)}
     </span>}
   </span>;
 }

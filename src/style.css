@@ -50,9 +50,15 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 [data-theme='dark'] { --surface: #282623; --ink: #f0ede8; --muted: #b5afa6; --line: #47423c; --accent: #ed9a6f; --tint: #3e2d24; --control: #36322d; color: var(--ink); color-scheme: dark; }
 .sprite-wrap { display: block; position: relative; }
 .sprite { display: block; image-rendering: pixelated; background-repeat: no-repeat; }
-.sleep { position: absolute; top: 0; right: 0; font-size: 13px; color: #77716a; animation: doze 3s ease-in-out infinite; pointer-events: none; }
-.sleep.bubble { border: 1px solid #a39c94; border-radius: 50%; padding: 3px 7px; }
-@keyframes doze { 50% { transform: translateY(-6px); opacity: .45; } }
+.sleep-trail { position: absolute; top: 46%; font-size: 11px; color: var(--muted); pointer-events: none; font-weight: 600; }
+.sleep-trail > span { position: absolute; opacity: 0; animation: sleep-drift 3.6s ease-out infinite; }
+.sleep-trail.still > span:first-child { animation: none; opacity: .7; transform: translateY(-8px); }
+.sleep-trail.still > span:not(:first-child) { display: none; }
+@keyframes sleep-drift {
+  0% { opacity: 0; transform: translate(0, 0) scale(.7); }
+  20% { opacity: .8; }
+  100% { opacity: 0; transform: translate(calc(var(--sleep-direction) * 30px), -38px) scale(1.25); }
+}
 [data-reduced='true'] *, [data-reduced='true'] *::before, [data-reduced='true'] *::after { animation: none !important; transition: none !important; }
 .settings-shell { height: 100%; display: flex; flex-direction: column; background: var(--surface); color: var(--ink); padding: 0 24px; overflow: hidden; }
 .settings-header { display: flex; align-items: center; justify-content: space-between; padding: 25px 0 16px; flex-shrink: 0; }

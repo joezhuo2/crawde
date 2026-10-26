@@ -11,7 +11,6 @@ interface Props {
 
 export function Sprite({ animation, scale = 3, reducedMotion = false, facing = 1, onComplete }: Props) {
   const [frame, setFrame] = useState(0);
-  const [sleepStyle, setSleepStyle] = useState(() => Math.random() > .5 ? 'letters' : 'bubble');
   const [systemReduced, setSystemReduced] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
   const spec = animations[animation];
 
@@ -24,7 +23,6 @@ export function Sprite({ animation, scale = 3, reducedMotion = false, facing = 1
 
   useEffect(() => {
     setFrame(0);
-    if (animation === 'sleep') setSleepStyle(Math.random() > .5 ? 'letters' : 'bubble');
     const oneShot = ['ability', 'attackA', 'attackB'].includes(animation);
     let tick = 0;
     const timer = window.setInterval(() => {
@@ -45,6 +43,8 @@ export function Sprite({ animation, scale = 3, reducedMotion = false, facing = 1
       backgroundPosition: framePosition(frame, spec.columns, scale),
       transform: `scaleX(${facing})`,
     }} />
-    {animation === 'sleep' && <span className={`sleep ${sleepStyle}`} aria-hidden="true">{sleepStyle === 'bubble' ? '· z' : 'z Z z'}</span>}
+    {animation === 'sleep' && <span className={`sleep-trail ${reducedMotion || systemReduced ? 'still' : ''}`} aria-hidden="true" style={{ left: facing > 0 ? '72%' : '24%', '--sleep-direction': facing } as React.CSSProperties}>
+      {[0, 1, 2].map(index => <span key={index} style={{ animationDelay: `${index * 1.2}s` }}>z</span>)}
+    </span>}
   </span>;
 }

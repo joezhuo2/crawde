@@ -5,12 +5,18 @@ use std::collections::{BTreeMap, BTreeSet};
 pub struct HookEvent {
     pub session_id: String,
     pub hook_event_name: String,
-    #[serde(default)] pub cwd: String,
-    #[serde(default)] pub tool_name: String,
-    #[serde(default)] pub tool_input: serde_json::Value,
-    #[serde(default)] pub prompt: String,
-    #[serde(default)] pub agent_id: String,
-    #[serde(default)] pub notification_type: String,
+    #[serde(default)]
+    pub cwd: String,
+    #[serde(default)]
+    pub tool_name: String,
+    #[serde(default)]
+    pub tool_input: serde_json::Value,
+    #[serde(default)]
+    pub prompt: String,
+    #[serde(default)]
+    pub agent_id: String,
+    #[serde(default)]
+    pub notification_type: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -30,20 +36,35 @@ pub struct Session {
 }
 
 #[derive(Default)]
-pub struct Activity { pub sessions: BTreeMap<String, Session>, pub last_prompt_at: u64 }
+pub struct Activity {
+    pub sessions: BTreeMap<String, Session>,
+    pub last_prompt_at: u64,
+}
 
 pub fn short(text: &str, max: usize) -> String {
-    text.split_whitespace().collect::<Vec<_>>().join(" ").chars().take(max).collect()
+    text.split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .chars()
+        .take(max)
+        .collect()
 }
 
 impl Activity {
     pub fn apply(&mut self, event: HookEvent, now: u64) -> Result<(), String> {
-        if event.session_id.len() > 128 || event.session_id.is_empty()
-            || !event.session_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+        if event.session_id.len() > 128
+            || event.session_id.is_empty()
+            || !event
+                .session_id
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-')
+        {
             return Err("Invalid session id".into());
         }
         let id = event.session_id.clone();
-        if event.hook_event_name == "UserPromptSubmit" { self.last_prompt_at = now; }
+        if event.hook_event_name == "UserPromptSubmit" {
+            self.last_prompt_at = now;
+        }
         if event.hook_event_name == "SessionEnd" {
             if let Some(session) = self.sessions.get_mut(&id) {
                 session.status = "done".into();
@@ -55,22 +76,41 @@ impl Activity {
         }
         // Bound memory even if a local producer sends many sessions.
         if !self.sessions.contains_key(&id) && self.sessions.len() >= 100 {
-            if let Some(oldest) = self.sessions.values().min_by_key(|s| s.updated_at).map(|s| s.id.clone()) {
+            if let Some(oldest) = self
+                .sessions
+                .values()
+                .min_by_key(|s| s.updated_at)
+                .map(|s| s.id.clone())
+            {
                 self.sessions.remove(&oldest);
             }
         }
         let session = self.sessions.entry(id.clone()).or_insert_with(|| Session {
-            id, cwd: event.cwd.clone(),
-            project: event.cwd.trim_end_matches(['/', '\\']).rsplit(['/', '\\']).next().unwrap_or("Claude").into(),
-            title: "New conversation".into(), status: "working".into(),
-            activity: "💭 Getting ready".into(), tool: String::new(), agents: BTreeSet::new(),
-            updated_at: now, last_prompt_at: now, finished_at: None,
+            id,
+            cwd: event.cwd.clone(),
+            project: event
+                .cwd
+                .trim_end_matches(['/', '\\'])
+                .rsplit(['/', '\\'])
+                .next()
+                .unwrap_or("Claude")
+                .into(),
+            title: "New conversation".into(),
+            status: "working".into(),
+            activity: "💭 Getting ready".into(),
+            tool: String::new(),
+            agents: BTreeSet::new(),
+            updated_at: now,
+            last_prompt_at: now,
+            finished_at: None,
         });
         session.updated_at = now;
         match event.hook_event_name.as_str() {
             "UserPromptSubmit" => {
                 session.title = short(&event.prompt, 90);
-                if session.title.is_empty() { session.title = "New conversation".into(); }
+                if session.title.is_empty() {
+                    session.title = "New conversation".into();
+                }
                 session.last_prompt_at = now;
                 session.status = "working".into();
                 session.finished_at = None;
@@ -90,8 +130,16 @@ impl Activity {
                     "Agent" | "Task" => "🤝 Delegating",
                     _ => "🛠️ Using a tool",
                 };
-                let detail = event.tool_input.get("description").and_then(|v| v.as_str()).unwrap_or("");
-                session.activity = if detail.is_empty() { label.into() } else { format!("{label} · {}", short(detail, 90)) };
+                let detail = event
+                    .tool_input
+                    .get("description")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+                session.activity = if detail.is_empty() {
+                    label.into()
+                } else {
+                    format!("{label} · {}", short(detail, 90))
+                };
             }
             "PermissionRequest" | "Elicitation" => {
                 session.status = "approval".into();
@@ -102,8 +150,12 @@ impl Activity {
                 session.status = "approval".into();
                 session.activity = "✋ Waiting for your approval".into();
             }
-            "SubagentStart" => { session.agents.insert(event.agent_id); }
-            "SubagentStop" => { session.agents.remove(&event.agent_id); }
+            "SubagentStart" => {
+                session.agents.insert(event.agent_id);
+            }
+            "SubagentStop" => {
+                session.agents.remove(&event.agent_id);
+            }
             "PostToolUseFailure" | "StopFailure" => {
                 session.status = "error".into();
                 session.activity = "⚠️ Something needs attention".into();
@@ -121,7 +173,10 @@ impl Activity {
     }
 
     pub fn visible(&mut self, now: u64) -> Vec<Session> {
-        self.sessions.retain(|_, s| s.finished_at.is_none_or(|at| now.saturating_sub(at) < 30_000));
+        self.sessions.retain(|_, s| {
+            s.finished_at
+                .is_none_or(|at| now.saturating_sub(at) < 30_000)
+        });
         let mut sessions: Vec<_> = self.sessions.values().cloned().collect();
         sessions.sort_by_key(|s| (s.status != "approval", std::cmp::Reverse(s.updated_at)));
         sessions
@@ -132,7 +187,10 @@ impl Activity {
 mod tests {
     use super::*;
     fn event(name: &str) -> HookEvent {
-        serde_json::from_value(serde_json::json!({"session_id":"test-1", "hook_event_name":name,"cwd":"C:\\project"})).unwrap()
+        serde_json::from_value(
+            serde_json::json!({"session_id":"test-1", "hook_event_name":name,"cwd":"C:\\project"}),
+        )
+        .unwrap()
     }
     #[test]
     fn completion_expires_and_new_prompt_revives() {
@@ -147,8 +205,10 @@ mod tests {
     #[test]
     fn agents_are_deduplicated_and_approval_clears_on_tool_progress() {
         let mut state = Activity::default();
-        let mut start = event("SubagentStart"); start.agent_id = "a".into();
-        state.apply(start.clone(), 1).unwrap(); state.apply(start, 2).unwrap();
+        let mut start = event("SubagentStart");
+        start.agent_id = "a".into();
+        state.apply(start.clone(), 1).unwrap();
+        state.apply(start, 2).unwrap();
         assert_eq!(state.visible(2)[0].agents.len(), 1);
         state.apply(event("PermissionRequest"), 3).unwrap();
         assert_eq!(state.visible(3)[0].status, "approval");

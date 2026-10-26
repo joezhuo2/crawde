@@ -1,4 +1,4 @@
-<p align="center"><img src="assets/crawde-banner.svg" alt="Crawde — a little company while Claude works" width="100%"></p>
+<p align="center"><img src="assets/crawde-banner.png" alt="Crawde — a little company while Claude works" width="100%"></p>
 
 <p align="center">
   <a href="https://github.com/joezhuo2/crawde/releases/latest"><img src="https://img.shields.io/github/v/release/joezhuo2/crawde?logo=github&color=orange" alt="release"></a>
@@ -55,7 +55,7 @@ are manual; an update check does not replace or restart the app.
 
 ### A crab on your desktop
 
-- **Always on top:** an animated pixel crab with a separate, readable tray icon.
+- **Always on top:** an animated pixel crab with a separate, high-resolution claw tray icon.
 - **Click and drag:** click for its ability animation; drag to move it. It snaps to
   all four screen edges and remembers positions for each monitor arrangement.
 - **Little walks:** occasional short runs within roughly 100 pixels of its saved

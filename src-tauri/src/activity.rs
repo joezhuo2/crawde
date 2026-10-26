@@ -41,6 +41,7 @@ pub struct Session {
 pub struct Activity {
     pub sessions: BTreeMap<String, Session>,
     pub last_prompt_at: u64,
+    dismissed: BTreeSet<String>,
 }
 
 pub fn short(text: &str, max: usize) -> String {
@@ -66,6 +67,7 @@ impl Activity {
         let id = event.session_id.clone();
         if event.hook_event_name == "UserPromptSubmit" {
             self.last_prompt_at = now;
+            self.dismissed.remove(&id);
         }
         if event.hook_event_name == "SessionEnd" {
             if let Some(session) = self.sessions.get_mut(&id) {
@@ -181,9 +183,25 @@ impl Activity {
             s.finished_at
                 .is_none_or(|at| now.saturating_sub(at) < 30_000)
         });
-        let mut sessions: Vec<_> = self.sessions.values().cloned().collect();
+        self.dismissed.retain(|id| self.sessions.contains_key(id));
+        let mut sessions: Vec<_> = self
+            .sessions
+            .values()
+            .filter(|s| !self.dismissed.contains(&s.id))
+            .cloned()
+            .collect();
         sessions.sort_by_key(|s| (s.status != "approval", std::cmp::Reverse(s.updated_at)));
         sessions
+    }
+
+    pub fn dismiss(&mut self, id: &str) {
+        if self.sessions.contains_key(id) {
+            self.dismissed.insert(id.to_string());
+        }
+    }
+
+    pub fn is_dismissed(&self, id: &str) -> bool {
+        self.dismissed.contains(id)
     }
 }
 
@@ -195,6 +213,17 @@ mod tests {
             serde_json::json!({"session_id":"test-1", "hook_event_name":name,"cwd":"C:\\project"}),
         )
         .unwrap()
+    }
+    #[test]
+    fn dismissed_chat_stays_hidden_through_tool_events_until_new_prompt() {
+        let mut state = Activity::default();
+        state.apply(event("UserPromptSubmit"), 1).unwrap();
+        state.dismiss("test-1");
+        state.apply(event("PermissionRequest"), 2).unwrap();
+        assert!(state.visible(2).is_empty());
+        assert!(state.is_dismissed("test-1"));
+        state.apply(event("UserPromptSubmit"), 3).unwrap();
+        assert_eq!(state.visible(3).len(), 1);
     }
     #[test]
     fn completion_expires_and_new_prompt_revives() {

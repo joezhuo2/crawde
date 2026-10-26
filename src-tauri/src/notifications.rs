@@ -10,14 +10,15 @@ pub struct Notifications {
 pub fn tick(app: &AppHandle) {
     let state = app.state::<AppState>();
     let preferences = state.preferences.lock().unwrap().clone();
-    let sessions: Vec<Session> = state
-        .activity
-        .lock()
-        .unwrap()
-        .sessions
-        .values()
-        .cloned()
-        .collect();
+    let sessions: Vec<Session> = {
+        let activity = state.activity.lock().unwrap();
+        activity
+            .sessions
+            .values()
+            .filter(|s| !activity.is_dismissed(&s.id))
+            .cloned()
+            .collect()
+    };
     let mut notifications = state.notifications.lock().unwrap();
     let now = crate::bridge::now();
     notifications

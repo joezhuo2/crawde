@@ -25,7 +25,7 @@
 > A small desktop companion built with Tauri 2 and React for Windows. A pixel crab
 > sits above your other windows while Claude Code works. Hover over it to follow
 > your chats, see the current tool or running subagents, and catch approvals and
-> finished tasks. Click a chat to open it, or start one in the same project. The
+> finished tasks. Click a chat to open it. The
 > crab takes little walks, reacts to clicks, and drifts off when things go quiet.
 
 ## Download
@@ -79,9 +79,7 @@ leave Crawde running and offer a retry; the About tab also shows update status.
 - **Approvals:** a gentle orange tint, occasional claw strikes, and an optional sound.
 - **Completion:** a checkmark and sound; finished cards leave after thirty seconds.
 - **Dismiss:** each card has an ×. It stays hidden until that chat receives a new prompt.
-- **Restore:** click the notification bell to show all current chats, including those dismissed with ×.
-- **Open or create:** click a card to resume its conversation. The plus button starts
-  a chat in the selected project, falling back to the most recently active project.
+- **Open:** click a card to resume its conversation.
 
 ## Settings and keybinds
 
@@ -94,9 +92,8 @@ These controls live only in the right-click menus and save immediately.
 | --- | --- |
 | Show or hide Crawde | Tray click or **Ctrl+Alt+P** by default; configurable |
 | Expand chats | Hover over the crab or a card |
-| Keep the list open | Pin button or the bell below the crab |
+| Keep the list open | Pin button in the chat heading |
 | Open a conversation | Click its card |
-| Start a chat in the current project | Plus button below the crab |
 | Dismiss a card | Its × button |
 | Open Claude and play the crab ability | Click the crab, or focus it and press Enter/Space |
 | Move the crab | Drag it |
@@ -134,7 +131,7 @@ WSL setup requires Python 3, `wslpath`, and enabled Windows executable interop.
 Every WSL event invokes the Windows Crawde executable, which forwards it to the
 Windows loopback receiver. This works with WSL NAT and mirrored networking;
 no firewall rule or network listener change is required. Hooks quietly return
-when Crawde is closed. Chat cards and the new-chat button launch Claude in the
+when Crawde is closed. Chat cards launch Claude in the
 original distro and project, using its interactive Bash environment. WSL chats
 always open in a terminal, including when the Desktop preference is selected.
 

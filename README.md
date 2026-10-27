@@ -97,7 +97,7 @@ These controls live only in the right-click menus and save immediately.
 | Open a conversation | Click its card |
 | Start a chat in the current project | Plus button below the crab |
 | Dismiss a card | Its × button |
-| Play the crab ability | Click the crab |
+| Open Claude and play the crab ability | Click the crab, or focus it and press Enter/Space |
 | Move the crab | Drag it |
 | Quit | **Right-click → Quit Crawde** |
 

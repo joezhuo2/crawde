@@ -27,11 +27,12 @@ export function App() {
   }, []);
   const preferences = activity.preferences ?? defaults;
   const behavior = useBehavior(activity.sessions, activity.claudeOpen ?? !native, preferences.reducedMotion, activity.lastPromptAt, activity.lastActivityAt);
-  const position = usePetPosition(expanded, preferences.roaming && !behavior.sleeping && !behavior.reduced && behavior.animation === 'idle', behavior.ability);
   useEffect(() => { document.documentElement.dataset.theme = preferences.theme; document.documentElement.dataset.reduced = String(behavior.reduced); }, [preferences.theme, behavior.reduced]);
   const act = async (name: string, args?: Record<string, unknown>) => {
     try { await command(name, args); setNotice(''); } catch (error) { setNotice(String(error)); }
   };
+  const activatePet = () => { behavior.ability(); void act('open_claude'); };
+  const position = usePetPosition(expanded, preferences.roaming && !behavior.sleeping && !behavior.reduced && behavior.animation === 'idle', activatePet);
   const dismissChat = async (id: string) => {
     const session = activity.sessions.find(s => s.id === id);
     if (!session) return;
@@ -47,7 +48,7 @@ export function App() {
     {expanded && (activity.bridgeError || activity.connectionError || notice) && <div className="notice" role="status">{activity.bridgeError || activity.connectionError || notice}</div>}
     {expanded && !activity.hooksInstalled && native && <button className="connect-bubble" onClick={() => void act('configure_hooks', { install: true })}>Connect to Claude Code <span>Enable activity hooks</span></button>}
     <div className="pet-anchor">
-      <button className="pet-button" aria-label="Play Crawde’s crab ability. Drag to move." {...position.handlers} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') behavior.ability(); }}>
+      <button className="pet-button" aria-label="Open Claude. Drag to move Crawde." {...position.handlers} onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) { e.preventDefault(); activatePet(); } }}>
         <Sprite animation={position.running ? 'run' : behavior.animation} scale={preferences.scale} reducedMotion={behavior.reduced} facing={position.facing} onComplete={behavior.complete} />
       </button>
       <div className="pet-controls" aria-hidden={!expanded}>

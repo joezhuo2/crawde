@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.21 — 2026-10-27
+
+- Walk with 3–7 second pauses during temporary wake-ups from sleep while Claude is inactive.
+- Pause walking during attacks, then schedule the next walk after the attack finishes; retain existing working and idle cadences.
+
 ## 0.1.20 — 2026-10-27
 
 - Preserve the crab’s screen position when dropped in the middle of the screen; changing chat direction no longer moves it between the ends of its transparent window.

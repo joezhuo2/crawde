@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { useWander } from './useWander';
 import { command, native } from './native';
+import type { WalkMode } from './wander';
 import type { Snapshot } from './types';
 
-export function usePetPosition(interacting: boolean, roaming: boolean, working: boolean, layoutKey: string, onAbility: () => void) {
+export function usePetPosition(interacting: boolean, roaming: boolean, mode: WalkMode, layoutKey: string, onAbility: () => void) {
   const down = useRef<{ x: number; y: number; moved: boolean; ready: Promise<void> } | null>(null);
   const [dragging, setDragging] = useState(false);
   const [keyboardFocused, setKeyboardFocused] = useState(false);
-  const wander = useWander(interacting || dragging || keyboardFocused, roaming, working, layoutKey);
+  const wander = useWander(interacting || dragging || keyboardFocused, roaming, mode, layoutKey);
 
   useEffect(() => {
     if (!native) return;

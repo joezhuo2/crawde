@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { nextWalk, walkDelay } from './wander';
+import { nextWalk, walkDelay, type WalkMode } from './wander';
 
-export function useWander(paused: boolean, enabled: boolean, working: boolean, layoutKey: string) {
+export function useWander(paused: boolean, enabled: boolean, mode: WalkMode, layoutKey: string) {
   const ref = useRef<HTMLButtonElement>(null);
   const offset = useRef(0);
   const home = useRef(0);
@@ -34,7 +34,7 @@ export function useWander(paused: boolean, enabled: boolean, working: boolean, l
 
     let timer = 0;
     let disposed = false;
-    const schedule = () => { timer = window.setTimeout(walk, walkDelay(working)); };
+    const schedule = () => { timer = window.setTimeout(walk, walkDelay(mode)); };
     const walk = () => {
       if (disposed || document.hidden || element.matches(':focus-visible')) { if (!disposed) schedule(); return; }
       const target = nextWalk(offset.current, home.current, min, max);
@@ -58,7 +58,7 @@ export function useWander(paused: boolean, enabled: boolean, working: boolean, l
     };
     schedule();
     return () => { disposed = true; window.clearTimeout(timer); stop(); };
-  }, [paused, enabled, working, layoutKey]);
+  }, [paused, enabled, mode, layoutKey]);
 
   return { ref, running, facing, stop, placed: () => { home.current = offset.current; } };
 }

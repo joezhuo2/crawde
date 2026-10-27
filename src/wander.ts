@@ -8,6 +8,9 @@ export function nextWalk(current: number, home: number, min: number, max: number
   return Math.abs(target - current) < 8 ? clamp(current - step) : target;
 }
 
-export function walkDelay(working: boolean, random = Math.random) {
-  return working ? 4_000 + random() * 4_000 : 35_000 + random() * 25_000;
+export type WalkMode = 'idle' | 'working' | 'exploring';
+
+export function walkDelay(mode: WalkMode, random = Math.random) {
+  if (mode === 'exploring') return 3_000 + random() * 4_000;
+  return mode === 'working' ? 4_000 + random() * 4_000 : 35_000 + random() * 25_000;
 }

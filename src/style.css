@@ -54,7 +54,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 [data-theme='light'] { --surface: #fcfbf9; --ink: #292724; --muted: #65615c; --line: #dedbd5; --accent: #b6532e; --tint: #fff0e7; --control: #f2efea; color: var(--ink); color-scheme: light; }
 [data-theme='dark'] { --surface: #282623; --ink: #f0ede8; --muted: #b5afa6; --line: #47423c; --accent: #ed9a6f; --tint: #3e2d24; --control: #36322d; color: var(--ink); color-scheme: dark; }
 .sprite-wrap { display: block; position: relative; }
-.sprite { display: block; image-rendering: pixelated; background-repeat: no-repeat; }
+.sprite { display: block; position: relative; image-rendering: pixelated; background-repeat: no-repeat; }
+.sprite-fx { position: absolute; pointer-events: none; image-rendering: pixelated; background-repeat: no-repeat; }
 .sleep-trail { position: absolute; top: 46%; font-size: 11px; color: var(--muted); pointer-events: none; font-weight: 600; }
 .sleep-trail > span { position: absolute; opacity: 0; animation: sleep-drift 3.2s ease-out infinite; }
 .sleep-trail.still > span:first-child { animation: none; opacity: .7; transform: translateY(-8px); }

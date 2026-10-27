@@ -19,6 +19,8 @@ export interface Snapshot {
   claudeOpen?: boolean;
   dockRight?: boolean;
   dockTop?: boolean;
+  petX?: number | null;
+  petY?: number | null;
   preferences?: import('./preferences').Preferences;
   lastPromptAt?: number;
   lastActivityAt?: number;

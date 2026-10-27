@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { useWander } from './useWander';
 import { command, native } from './native';
+import type { Snapshot } from './types';
 
 export function usePetPosition(interacting: boolean, roaming: boolean, working: boolean, layoutKey: string, onAbility: () => void) {
   const down = useRef<{ x: number; y: number; moved: boolean; ready: Promise<void> } | null>(null);
@@ -16,7 +17,12 @@ export function usePetPosition(interacting: boolean, roaming: boolean, working: 
       frame = requestAnimationFrame(() => {
         const regions = Array.from(document.querySelectorAll('.pet-button, .chat-list.expanded, .chat-bubble, .list-heading, .pagination, .notice, .connect-bubble'))
           .filter(node => getComputedStyle(node).opacity !== '0')
-          .map(node => { const r = node.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; });
+          .map(node => {
+            const r = node.getBoundingClientRect();
+            const clip = node.closest('.chat-stack')?.getBoundingClientRect();
+            const x = Math.max(r.x, clip?.left ?? r.x), y = Math.max(r.y, clip?.top ?? r.y);
+            return { x, y, width: Math.max(0, Math.min(r.right, clip?.right ?? r.right) - x), height: Math.max(0, Math.min(r.bottom, clip?.bottom ?? r.bottom) - y) };
+          }).filter(region => region.width > 0 && region.height > 0);
         void command('hit_regions', { regions }).catch(() => {});
       });
     };
@@ -46,8 +52,14 @@ export function usePetPosition(interacting: boolean, roaming: boolean, working: 
     down.current = null;
     if (!drag) return;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    const rect = event.currentTarget.closest('.pet-anchor')!.getBoundingClientRect();
     await drag.ready;
-    if (native) await command('drag_end').catch(() => {});
+    if (native) {
+      const pet = { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      await command<Snapshot>('drag_end', { pet }).then(snapshot => {
+        window.dispatchEvent(new CustomEvent('pet-positioned', { detail: snapshot }));
+      }).catch(() => {});
+    }
     if (drag.moved) wander.placed();
     setDragging(false);
     if (!drag.moved && event.type !== 'pointercancel') onAbility();

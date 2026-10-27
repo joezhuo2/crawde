@@ -29,6 +29,7 @@
 - [ ] Native sound playback works before the first pet click; mute and volume work.
 - [ ] New chat uses the selected project and clicking a card resumes the correct conversation.
 - [ ] Install update verifies the checksum, launches the installer before exiting, and stays open on failure.
+- [ ] Both menus show one versioned update action; available updates install on click and checks run on launch even with an old disabled preference.
 - [ ] Update check reports latest version, network errors, and no-release state honestly.
 
 Multi-monitor hotplug/DPI changes and the installed startup flow need testing on representative Windows hardware. Public release download detection requires a published GitHub release. Terminal chat navigation resumes in a new tab instead of focusing an existing one.

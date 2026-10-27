@@ -95,6 +95,7 @@ fn dismiss_chat(state: State<AppState>, id: String) -> Result<(), String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _| {
+            updates::check_on_launch(app);
             if args.iter().any(|arg| arg == "--toggle") {
                 let _ = lifecycle::toggle(app);
             } else if !args.iter().any(|arg| arg == "--background") {
@@ -117,7 +118,7 @@ pub fn run() {
             position::initialize(app.handle())?;
             position::start_hit_testing(app.handle().clone());
             lifecycle::setup(app.handle())?;
-            updates::check_on_open(app.handle());
+            updates::check_on_launch(app.handle());
             Ok(())
         })
         .on_menu_event(|app, event| lifecycle::handle_menu(app, event.id.as_ref()))

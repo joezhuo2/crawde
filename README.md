@@ -47,11 +47,14 @@ Regular Claude Chat, WSL/remote activity forwarding, and macOS are outside this 
 
 ### Updates
 
-Crawde checks GitHub releases when it opens, unless you turn that off in settings.
-Right-click the crab or tray icon and select **Check for updates** to check immediately.
-**Close + install latest update** downloads the latest Windows installer, verifies its
-SHA-256 checksum, launches it, and closes Crawde. Failures leave Crawde running;
-the menu and About tab show update status.
+Crawde always checks GitHub releases on launch. The crab and tray right-click menus
+show one update action: **Up to date (vx.y.z)** with your installed version, or
+**Install latest update (vx.y.z)** with the available version. Clicking the latter
+downloads and verifies the installer, launches it, and closes Crawde. Clicking
+**Up to date** checks again. Checks never install an update automatically.
+
+While checking or downloading, the action shows progress and is disabled. Failures
+leave Crawde running and offer a retry; the About tab also shows update status.
 
 ## Features
 

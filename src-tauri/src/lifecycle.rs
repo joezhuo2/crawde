@@ -14,7 +14,6 @@ pub struct Lifecycle {
 
 #[tauri::command]
 pub fn show_settings(app: AppHandle) -> Result<(), String> {
-    crate::updates::check_on_open(&app);
     if let Some(window) = app.get_webview_window("settings") {
         window.show().map_err(|e| e.to_string())?;
         return window.set_focus().map_err(|e| e.to_string());
@@ -81,20 +80,9 @@ pub fn context_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         .state::<AppState>()
         .update_busy
         .load(std::sync::atomic::Ordering::SeqCst);
-    let check = MenuItem::with_id(
-        app,
-        "check_updates",
-        "Check for updates",
-        !busy,
-        None::<&str>,
-    )?;
-    let install = MenuItem::with_id(
-        app,
-        "install_update",
-        "Close + install latest update",
-        !busy,
-        None::<&str>,
-    )?;
+    let update = app.state::<AppState>().update.lock().unwrap().clone();
+    let (label, enabled) = crate::updates::menu_label(update.as_ref(), busy);
+    let update_action = MenuItem::with_id(app, "update", label, enabled, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit Crawde", true, None::<&str>)?;
     let prefs = app.state::<AppState>().preferences.lock().unwrap().clone();
     let motion = CheckMenuItem::with_id(
@@ -161,8 +149,7 @@ pub fn context_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
             &hooks,
             &disconnect,
             &PredefinedMenuItem::separator(app)?,
-            &check,
-            &install,
+            &update_action,
             &quit,
         ],
     )?;
@@ -176,8 +163,7 @@ pub fn context_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
             None::<&str>,
         )?)?;
     }
-    let update = app.state::<AppState>().update.lock().unwrap().clone();
-    if let Some(info) = update {
+    if let Some(info) = update.filter(|info| !info.check_succeeded && !busy) {
         menu.append(&MenuItem::with_id(
             app,
             "update_status",
@@ -202,12 +188,8 @@ pub fn handle_menu(app: &AppHandle, id: &str) {
             quit(app.clone());
             return;
         }
-        "check_updates" => {
-            crate::updates::start(app, false);
-            return;
-        }
-        "install_update" => {
-            crate::updates::start(app, true);
+        "update" => {
+            crate::updates::activate(app);
             return;
         }
         "reducedMotion" | "startup" | "roaming" | "sound" => {

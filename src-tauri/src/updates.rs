@@ -12,6 +12,7 @@ const API: &str = "https://api.github.com/repos/joezhuo2/crawde/releases/latest"
 pub struct UpdateInfo {
     pub checked_at: u64,
     pub available: bool,
+    pub check_succeeded: bool,
     pub version: Option<String>,
     pub message: String,
 }
@@ -63,10 +64,16 @@ fn newer(release: &Release) -> Result<Option<semver::Version>, String> {
     Ok((latest > current).then_some(latest))
 }
 
-fn status(app: &AppHandle, message: String, version: Option<String>) -> UpdateInfo {
+fn status(
+    app: &AppHandle,
+    message: String,
+    version: Option<String>,
+    check_succeeded: bool,
+) -> UpdateInfo {
     let info = UpdateInfo {
         checked_at: crate::bridge::now(),
         available: version.is_some(),
+        check_succeeded,
         version,
         message,
     };
@@ -89,7 +96,7 @@ pub async fn check_updates(app: AppHandle) -> Result<UpdateInfo, String> {
         (_, Some(v)) => format!("Crawde {v} is available."),
         _ => "You're up to date.".into(),
     };
-    Ok(status(&app, message, version))
+    Ok(status(&app, message, version, true))
 }
 
 fn asset_url<'a>(release: &'a Release, name: &str) -> Result<&'a str, String> {
@@ -123,7 +130,7 @@ async fn install(app: &AppHandle) -> Result<(), String> {
         .await?
         .ok_or("No public release is available yet.")?;
     let Some(version) = newer(&release)? else {
-        status(app, "You're up to date.".into(), None);
+        status(app, "You're up to date.".into(), None, true);
         return Ok(());
     };
     let filename = format!("Crawde_{version}_x64-setup.exe");
@@ -131,6 +138,7 @@ async fn install(app: &AppHandle) -> Result<(), String> {
         app,
         format!("Downloading Crawde {version}…"),
         Some(version.to_string()),
+        true,
     );
     let checksum = client
         .get(asset_url(&release, &format!("{filename}.sha256"))?)
@@ -177,7 +185,7 @@ pub fn start(app: &AppHandle, install_latest: bool) {
     {
         return;
     }
-    status(app, "Checking for updates…".into(), None);
+    status(app, "Checking for updates…".into(), None, false);
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         let result = if install_latest {
@@ -186,7 +194,7 @@ pub fn start(app: &AppHandle, install_latest: bool) {
             check_updates(app.clone()).await.map(|_| ())
         };
         if let Err(error) = result {
-            status(&app, error, None);
+            status(&app, error, None, false);
         }
         app.state::<crate::AppState>()
             .update_busy
@@ -195,20 +203,42 @@ pub fn start(app: &AppHandle, install_latest: bool) {
     });
 }
 
-pub fn check_on_open(app: &AppHandle) {
-    let state = app.state::<crate::AppState>();
-    if !state.preferences.lock().unwrap().check_on_open {
-        return;
+pub fn check_on_launch(app: &AppHandle) {
+    start(app, false);
+}
+
+pub fn menu_label(info: Option<&UpdateInfo>, busy: bool) -> (String, bool) {
+    if busy {
+        return (
+            info.map(|i| i.message.clone())
+                .unwrap_or_else(|| "Checking for updates…".into()),
+            false,
+        );
     }
-    let recent = state
+    match info {
+        Some(info) if info.check_succeeded && info.available => {
+            if let Some(version) = &info.version {
+                return (format!("Install latest update (v{version})"), true);
+            }
+            ("Update check failed — retry".into(), true)
+        }
+        Some(info) if info.check_succeeded => {
+            (format!("Up to date (v{})", env!("CARGO_PKG_VERSION")), true)
+        }
+        Some(_) => ("Update check failed — retry".into(), true),
+        None => ("Checking for updates…".into(), false),
+    }
+}
+
+pub fn activate(app: &AppHandle) {
+    let install_latest = app
+        .state::<crate::AppState>()
         .update
         .lock()
         .unwrap()
         .as_ref()
-        .is_some_and(|i| crate::bridge::now().saturating_sub(i.checked_at) < 1_800_000);
-    if !recent {
-        start(app, false);
-    }
+        .is_some_and(|info| info.check_succeeded && info.available && info.version.is_some());
+    start(app, install_latest);
 }
 
 #[tauri::command]
@@ -221,6 +251,38 @@ pub fn open_releases(app: AppHandle) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn update_menu_tracks_version_progress_and_failures() {
+        let mut info = UpdateInfo {
+            checked_at: 1,
+            available: false,
+            check_succeeded: true,
+            version: None,
+            message: "You're up to date.".into(),
+        };
+        assert_eq!(
+            menu_label(Some(&info), false),
+            (format!("Up to date (v{})", env!("CARGO_PKG_VERSION")), true)
+        );
+        info.available = true;
+        info.version = Some("9.0.0".into());
+        assert_eq!(
+            menu_label(Some(&info), false),
+            ("Install latest update (v9.0.0)".into(), true)
+        );
+        info.message = "Downloading Crawde 9.0.0…".into();
+        assert_eq!(menu_label(Some(&info), true), (info.message.clone(), false));
+        info.check_succeeded = false;
+        assert_eq!(
+            menu_label(Some(&info), false),
+            ("Update check failed — retry".into(), true)
+        );
+        assert_eq!(
+            menu_label(None, false),
+            ("Checking for updates…".into(), false)
+        );
+    }
+
     #[test]
     fn checksum_requires_matching_content_and_filename() {
         let checksum = format!("{:x}  setup.exe\n", Sha256::digest(b"installer"));

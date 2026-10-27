@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.7 — 2026-10-26
+
+- Replace the two update menu items with one versioned Up to date / Install latest update action.
+- Always check on launch, including when an older preference disabled update checks.
+- Show checking, download, and retry states without reporting a failed check as up to date.
+
 ## 0.1.6 — 2026-10-26
 
 - Move Reduce motion, Launch on startup, Little walks, and Sound effects exclusively to both right-click menus.

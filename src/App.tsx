@@ -1,4 +1,4 @@
-import { Bell, Plus, PushPin, Gear, X } from '@phosphor-icons/react';
+import { Gear, X } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import { Sprite } from './Sprite';
@@ -13,14 +13,13 @@ export function App() {
   const activity = useActivity();
   const [hovered, setHovered] = useState(false);
   const [pinned, setPinned] = useState(false);
-  const [opened, setOpened] = useState(false);
   const [notice, setNotice] = useState('');
   const [dismissedNotice, setDismissedNotice] = useState<string | null>(null);
   const currentNotice = activity.bridgeError || activity.connectionError || notice;
   useEffect(() => { setDismissedNotice(null); }, [currentNotice]);
   const [dismissed, setDismissed] = useState<Record<string, number>>({});
   const sessions = activity.sessions.filter(s => dismissed[s.id] === undefined || s.lastPromptAt > dismissed[s.id]);
-  const expanded = hovered || pinned || opened;
+  const expanded = hovered || pinned;
   useEffect(() => {
     if (!native) return;
     let disposed = false;
@@ -46,15 +45,6 @@ export function App() {
       setDismissed(current => ({ ...current, [id]: session.lastPromptAt }));
     } catch (error) { setNotice(String(error)); }
   };
-  const restoreChats = async () => {
-    setDismissedNotice(null);
-    try {
-      if (native) await command('restore_chats');
-      setDismissed({});
-      setOpened(true);
-      setNotice('');
-    } catch (error) { setNotice(String(error)); }
-  };
   return <main className={`pet-scene ${expanded ? 'is-expanded' : ''} ${activity.dockRight ? 'dock-right' : ''} ${activity.dockTop ? 'dock-top' : ''}`} aria-label="Crawde desktop companion"
     onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
     onContextMenu={event => { event.preventDefault(); void act('show_context_menu'); }}>
@@ -65,11 +55,6 @@ export function App() {
       <button className="pet-button" aria-label="Open Claude. Drag to move Crawde." {...position.handlers} onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) { e.preventDefault(); activatePet(); } }}>
         <Sprite animation={position.running ? 'run' : behavior.animation} scale={preferences.scale} reducedMotion={behavior.reduced} facing={position.facing} onComplete={behavior.complete} />
       </button>
-      <div className="pet-controls" aria-hidden={!expanded}>
-        <button className="icon-button" tabIndex={expanded ? 0 : -1} aria-label="New chat in current project" onClick={() => void act('new_chat', { id: activity.sessions[0]?.id ?? null })}><Plus size={18} weight="bold" /></button>
-        <button className="icon-button notification-button" tabIndex={expanded ? 0 : -1} aria-label="Show all current chats, including dismissed chats" aria-pressed={opened} onClick={() => void restoreChats()}><Bell size={18} />{sessions.some(s => s.status === 'approval') && <i />}</button>
-        {pinned && <PushPin size={12} className="pin-indicator" />}
-      </div>
     </div>
     {!native && <aside className="preview-label">Crawde · browser preview <button className="icon-button" title="Preview settings" onClick={() => location.search = '?settings&demo'}><Gear size={16} /></button></aside>}
   </main>;

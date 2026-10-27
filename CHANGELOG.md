@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.13 — 2026-10-27
+
+- Remove the new-chat and notification action buttons beneath the crab.
+- Remove the empty control space and its top-edge hover offset; chats still expand on hover and can be pinned.
+
 ## 0.1.12 — 2026-10-27
 
 - Add an accessible × button to dismiss notification and error banners.

@@ -231,6 +231,10 @@ impl Activity {
         self.dismissed.contains(id)
     }
 
+    pub fn restore_dismissed(&mut self) {
+        self.dismissed.clear();
+    }
+
     pub fn has_recent_work(&self, now: u64) -> bool {
         self.sessions.values().any(|session| {
             session.status != "done" && now.saturating_sub(session.updated_at) < 600_000
@@ -261,6 +265,19 @@ mod tests {
         assert_eq!(sessions[0].project, "My project");
         assert_eq!(sessions[0].title, "Fix Linux integration");
         assert!(state.has_recent_work(101));
+    }
+    #[test]
+    fn notifications_restore_dismissed_chats_without_reviving_expired_sessions() {
+        let mut state = Activity::default();
+        state.apply(event("UserPromptSubmit"), 1).unwrap();
+        state.dismiss("test-1");
+        assert!(state.visible(2).is_empty());
+        state.restore_dismissed();
+        assert_eq!(state.visible(3).len(), 1);
+        state.apply(event("Stop"), 4).unwrap();
+        state.dismiss("test-1");
+        state.restore_dismissed();
+        assert!(state.visible(30_004).is_empty());
     }
     #[test]
     fn dismissed_chat_stays_hidden_through_tool_events_until_new_prompt() {

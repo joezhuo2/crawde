@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.10 — 2026-10-27
+
+- Clicking the notification bell restores chats dismissed with × and expands the chat list.
+- Keep expired completed sessions out of the restored list.
+
 ## 0.1.9 — 2026-10-27
 
 - Click the crab, or press Enter/Space while it is focused, to open Claude Desktop and play the crab ability.

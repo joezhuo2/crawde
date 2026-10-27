@@ -144,15 +144,9 @@ pub fn drag_move(app: AppHandle, state: State<AppState>) -> Result<(), String> {
     Ok(())
 }
 
-pub fn snapped(value: i32, min: i32, max: i32, threshold: i32) -> i32 {
-    let value = value.clamp(min, max.max(min));
-    if value - min < threshold {
-        min
-    } else if max - value < threshold {
-        max.max(min)
-    } else {
-        value
-    }
+// Only correct positions that would put the window outside the work area.
+pub fn bounded(value: i32, min: i32, max: i32) -> i32 {
+    value.clamp(min, max.max(min))
 }
 
 #[tauri::command]
@@ -168,19 +162,16 @@ pub fn drag_end(app: AppHandle, state: State<AppState>) -> Result<(), String> {
     let area = monitor.work_area();
     let size = window.outer_size().map_err(|e| e.to_string())?;
     let at = window.outer_position().map_err(|e| e.to_string())?;
-    let threshold = (24.0 * monitor.scale_factor()) as i32;
     let at = PhysicalPosition::new(
-        snapped(
+        bounded(
             at.x,
             area.position.x,
             area.position.x + area.size.width as i32 - size.width as i32,
-            threshold,
         ),
-        snapped(
+        bounded(
             at.y,
             area.position.y,
             area.position.y + area.size.height as i32 - size.height as i32,
-            threshold,
         ),
     );
     window.set_position(at).map_err(|e| e.to_string())?;
@@ -254,9 +245,13 @@ pub fn start_hit_testing(app: AppHandle) {
 mod tests {
     use super::*;
     #[test]
-    fn snapping_handles_negative_monitors_and_small_displays() {
-        assert_eq!(snapped(-1910, -1920, -350, 24), -1920);
-        assert_eq!(snapped(-360, -1920, -350, 24), -350);
-        assert_eq!(snapped(500, 0, -10, 24), 0);
+    fn bounds_preserve_near_edge_positions_and_handle_small_displays() {
+        assert_eq!(bounded(-1910, -1920, -350), -1910);
+        assert_eq!(bounded(-360, -1920, -350), -360);
+        assert_eq!(bounded(-2000, -1920, -350), -1920);
+        assert_eq!(bounded(0, -1920, -350), -350);
+        assert_eq!(bounded(500, 0, -10), 0);
+        assert_eq!(bounded(12, 0, 1000), 12);
+        assert_eq!(bounded(990, 0, 1000), 990);
     }
 }

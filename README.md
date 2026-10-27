@@ -43,7 +43,8 @@ Get the latest Windows x64 installer from [Releases](https://github.com/joezhuo2
 3. Start a new Claude Code session, or restart an existing one so it loads the hooks.
 
 Supports Claude Code in your terminal and the **Code tab** in Claude Desktop.
-Regular Claude Chat, WSL/remote activity forwarding, and macOS are outside this version's scope.
+Ubuntu/Linux Claude Code sessions in WSL on the same Windows PC are supported.
+Separate Linux machines, regular Claude Chat, and macOS are outside this version's scope.
 
 ### Updates
 
@@ -114,12 +115,32 @@ in the tray until Claude opens. Windows may put the tray icon in its overflow me
 
 **Settings → Claude** shows whether hooks are installed and when activity was last
 received. Install or reinstall hooks from the right-click menu. If it says no activity has arrived, restart the Claude session after
-connecting hooks and check that it is running locally on Windows.
+connecting hooks. For WSL sessions, follow the setup below.
 
 Crawde preserves your existing Claude hooks, backs up settings before changes,
 and removes only its own handlers when disconnected. Older startup-hook
 configurations are repaired automatically when Crawde launches. It observes work;
 it never approves or denies Claude's actions.
+
+### Ubuntu/Linux sessions in WSL
+
+After upgrading to 0.1.8, choose **Reinstall activity hooks**. Crawde updates the
+Windows configuration and existing `~/.claude` configurations in registered WSL
+distros (excluding Docker's internal distros). Start Claude once in a new distro
+before reinstalling hooks, then restart existing Claude sessions.
+
+WSL setup requires Python 3, `wslpath`, and enabled Windows executable interop.
+Every WSL event invokes the Windows Crawde executable, which forwards it to the
+Windows loopback receiver. This works with WSL NAT and mirrored networking;
+no firewall rule or network listener change is required. Hooks quietly return
+when Crawde is closed. Chat cards and the new-chat button launch Claude in the
+original distro and project, using its interactive Bash environment. WSL chats
+always open in a terminal, including when the Desktop preference is selected.
+
+The distro's `CLAUDE_CONFIG_DIR` is honored when exported to the setup process;
+otherwise setup uses the default user's `~/.claude`. Configurations belonging to
+other Linux users require separate setup. Disconnect removes Crawde's hooks in
+both Windows and WSL and preserves other handlers and timestamped backups.
 
 <details>
 <summary>How activity and chat navigation work</summary>

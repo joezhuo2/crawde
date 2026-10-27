@@ -3,6 +3,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct HookEvent {
+    #[serde(default)]
+    pub wsl_distro: Option<String>,
     pub session_id: String,
     pub hook_event_name: String,
     #[serde(default)]
@@ -24,6 +26,7 @@ pub struct HookEvent {
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Session {
+    pub wsl_distro: Option<String>,
     pub id: String,
     pub cwd: String,
     pub project: String,
@@ -57,6 +60,13 @@ pub fn short(text: &str, max: usize) -> String {
 
 impl Activity {
     pub fn apply(&mut self, event: HookEvent, now: u64) -> Result<(), String> {
+        if event
+            .wsl_distro
+            .as_deref()
+            .is_some_and(|distro| !crate::wsl::valid_distro(distro))
+        {
+            return Err("Invalid WSL distro".into());
+        }
         if event.session_id.len() > 128
             || event.session_id.is_empty()
             || !event
@@ -106,6 +116,7 @@ impl Activity {
             }
         }
         let session = self.sessions.entry(id.clone()).or_insert_with(|| Session {
+            wsl_distro: event.wsl_distro.clone(),
             id,
             cwd: event.cwd.clone(),
             project: event
@@ -235,6 +246,21 @@ mod tests {
             serde_json::json!({"session_id":"test-1", "hook_event_name":name,"cwd":"C:\\project"}),
         )
         .unwrap()
+    }
+    #[test]
+    fn wsl_events_preserve_linux_context_and_wake_the_pet() {
+        let mut state = Activity::default();
+        let mut input = event("UserPromptSubmit");
+        input.wsl_distro = Some("Ubuntu-24.04".into());
+        input.cwd = "/home/joe/My project".into();
+        input.prompt = "Fix Linux integration".into();
+        state.apply(input, 100).unwrap();
+        let sessions = state.visible(101);
+        assert_eq!(sessions[0].wsl_distro.as_deref(), Some("Ubuntu-24.04"));
+        assert_eq!(sessions[0].cwd, "/home/joe/My project");
+        assert_eq!(sessions[0].project, "My project");
+        assert_eq!(sessions[0].title, "Fix Linux integration");
+        assert!(state.has_recent_work(101));
     }
     #[test]
     fn dismissed_chat_stays_hidden_through_tool_events_until_new_prompt() {

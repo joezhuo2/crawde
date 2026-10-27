@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.8 — 2026-10-27
+
+- Install activity hooks in existing Claude configurations inside WSL distributions.
+- Forward WSL events through Windows interop without exposing the receiver to the network.
+- Resume WSL chats and create new chats in their original Linux distro and project.
+- Wake the startup-hidden pet when WSL sessions become active.
+
 ## 0.1.7 — 2026-10-26
 
 - Replace the two update menu items with one versioned Up to date / Install latest update action.

@@ -6,6 +6,41 @@ use tauri_plugin_opener::OpenerExt;
 #[derive(Default)]
 pub struct Navigation {
     pub current_project: Option<PathBuf>,
+    pub current_distro: Option<String>,
+}
+
+fn launch_wsl(distro: &str, cwd: &str, id: Option<&str>) -> Result<(), String> {
+    if !crate::wsl::valid_distro(distro) || !cwd.starts_with('/') || cwd.contains('\0') {
+        return Err("Invalid WSL project".into());
+    }
+    let mut args = vec![
+        "--distribution",
+        distro,
+        "--cd",
+        cwd,
+        "--exec",
+        "bash",
+        "-lic",
+        "exec claude \"$@\"",
+        "crawde",
+    ];
+    if let Some(id) = id {
+        args.extend(["--resume", id]);
+    }
+    let mut terminal = Command::new("wt.exe");
+    terminal.args(["new-tab", "wsl.exe"]).args(&args);
+    if terminal.spawn().is_ok() {
+        return Ok(());
+    }
+    let mut terminal = Command::new("wsl.exe");
+    terminal.args(args);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        terminal.creation_flags(0x00000010);
+    }
+    terminal.spawn().map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 fn claude_exe() -> Result<PathBuf, String> {
@@ -71,6 +106,13 @@ pub fn open_chat(app: AppHandle, state: State<AppState>, id: String) -> Result<(
         .get(&id)
         .cloned()
         .ok_or("Conversation has expired")?;
+    if let Some(distro) = &session.wsl_distro {
+        launch_wsl(distro, &session.cwd, Some(&id))?;
+        let mut navigation = state.navigation.lock().map_err(|e| e.to_string())?;
+        navigation.current_project = Some(PathBuf::from(session.cwd));
+        navigation.current_distro = Some(distro.clone());
+        return Ok(());
+    }
     let project = folder(&session.cwd)?;
     let target = state
         .preferences
@@ -92,11 +134,9 @@ pub fn open_chat(app: AppHandle, state: State<AppState>, id: String) -> Result<(
         }
         process.spawn().map_err(|e| e.to_string())?;
     }
-    state
-        .navigation
-        .lock()
-        .map_err(|e| e.to_string())?
-        .current_project = Some(project);
+    let mut navigation = state.navigation.lock().map_err(|e| e.to_string())?;
+    navigation.current_project = Some(project);
+    navigation.current_distro = None;
     let _ = app;
     Ok(())
 }
@@ -112,6 +152,26 @@ pub fn new_code_url(project: Option<&PathBuf>) -> String {
 
 #[tauri::command]
 pub fn new_chat(app: AppHandle, state: State<AppState>, id: Option<String>) -> Result<(), String> {
+    {
+        let navigation = state.navigation.lock().map_err(|e| e.to_string())?;
+        if let (Some(distro), Some(project)) =
+            (&navigation.current_distro, &navigation.current_project)
+        {
+            return launch_wsl(distro, &project.to_string_lossy(), None);
+        }
+        if navigation.current_project.is_none() {
+            let activity = state.activity.lock().map_err(|e| e.to_string())?;
+            if let Some(session) = id
+                .as_ref()
+                .and_then(|id| activity.sessions.get(id))
+                .or_else(|| activity.sessions.values().max_by_key(|s| s.updated_at))
+            {
+                if let Some(distro) = &session.wsl_distro {
+                    return launch_wsl(distro, &session.cwd, None);
+                }
+            }
+        }
+    }
     let selected = state
         .navigation
         .lock()

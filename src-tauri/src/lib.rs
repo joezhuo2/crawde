@@ -7,6 +7,7 @@ mod position;
 mod preferences;
 mod titles;
 mod updates;
+mod wsl;
 
 pub use bridge::forward_hook;
 use std::sync::Mutex;

@@ -2,9 +2,9 @@ import { expect, it } from 'vitest';
 import { nextWalk, walkDelay } from './wander';
 
 it('walks more frequently during work', () => {
-  expect(walkDelay(true, () => 0)).toBe(4_000);
-  expect(walkDelay(true, () => 1)).toBe(8_000);
-  expect(walkDelay(false, () => 0)).toBe(35_000);
+  expect(walkDelay('working', () => 0)).toBe(4_000);
+  expect(walkDelay('working', () => 1)).toBe(8_000);
+  expect(walkDelay('idle', () => 0)).toBe(35_000);
 });
 
 it('turns back at either edge instead of walking offscreen or getting stuck', () => {
@@ -22,4 +22,11 @@ it('stays within 100px of the placed home over repeated walks', () => {
     expect(position).toBeLessThanOrEqual(120);
   }
   expect(nextWalk(0, 0, 0, 0)).toBe(0);
+});
+
+it('uses 3–7 second pauses during temporary wake-ups', () => {
+  expect(walkDelay('exploring', () => 0)).toBe(3_000);
+  expect(walkDelay('exploring', () => .5)).toBe(5_000);
+  expect(walkDelay('exploring', () => 1)).toBe(7_000);
+  expect(walkDelay('idle', () => 1)).toBe(60_000);
 });

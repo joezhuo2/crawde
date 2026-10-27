@@ -35,8 +35,8 @@ export function App() {
     try { await command(name, args); setNotice(''); } catch (error) { setNotice(String(error)); }
   };
   const activatePet = () => { behavior.ability(); void act('open_claude'); };
-  const working = behavior.exploring || activity.sessions.some(session => session.status === 'working');
-  const position = usePetPosition(hovered, preferences.roaming && !behavior.sleeping && !behavior.reduced && behavior.animation === 'idle', working, `${activity.petX}-${activity.petY}-${preferences.scale}`, activatePet);
+  const walkMode = behavior.exploring ? 'exploring' : activity.sessions.some(session => session.status === 'working') ? 'working' : 'idle';
+  const position = usePetPosition(hovered, preferences.roaming && !behavior.sleeping && !behavior.reduced && behavior.animation === 'idle', walkMode, `${activity.petX}-${activity.petY}-${preferences.scale}`, activatePet);
   const dismissChat = async (id: string) => {
     setDismissedNotice(null);
     const session = activity.sessions.find(s => s.id === id);
@@ -57,7 +57,7 @@ export function App() {
     </div>
     <div className="pet-anchor">
       <button ref={position.petRef} className="pet-button" aria-label="Open Claude. Drag to move Crawde." {...position.handlers} onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) { e.preventDefault(); activatePet(); } }}>
-        <Sprite animation={position.running ? 'run' : behavior.animation} scale={preferences.scale} reducedMotion={behavior.reduced} facing={position.facing} onComplete={behavior.complete} />
+        <Sprite animation={position.running && behavior.animation === 'idle' ? 'run' : behavior.animation} scale={preferences.scale} reducedMotion={behavior.reduced} facing={position.facing} onComplete={behavior.complete} />
       </button>
     </div>
     {!native && <aside className="preview-label">Crawde · browser preview <button className="icon-button" title="Preview settings" onClick={() => location.search = '?settings&demo'}><Gear size={16} /></button></aside>}

@@ -4,6 +4,7 @@
 
 - Sleep outing timing, attack counts, return to sleep, and timer cancellation.
 - Equal-probability selection of all three click animations.
+- Attack FX use the reference strike frames (attack 1: 7–9, attack 2: 3–5), with no effects outside those frames.
 - Sprite row/column addressing and nonempty frame counts.
 - Session completion expiry at 30 seconds and revival on a new prompt.
 - Subagent deduplication and approval-to-tool transitions.
@@ -14,7 +15,7 @@
 - Folder URL encoding and transcript title parsing.
 - Wake-up from tool activity without process detection, continued activity after an old prompt, and sleep after inactivity.
 - Migration from unsupported HTTP startup hooks to command forwarding without replacing unrelated handlers.
-- Production bundles contain all five sprite sheets as local assets and no inline images blocked by the native Content Security Policy. This check runs during every build, including release packaging.
+- Production bundles contain all seven sprite sheets as local assets and no inline images blocked by the native Content Security Policy. This check runs during every build, including release packaging.
 
 ## Windows release checklist
 
@@ -23,6 +24,7 @@
 - [ ] CLI and Desktop Code events appear with correct titles and current tool/subagent details.
 - [ ] Hover expands, pin persists while leaving, three-chat pagination works.
 - [ ] Completion checkmark expires after 30 seconds; new prompts restore the chat.
+- [ ] Attack 1/2 sparks match CrabComplete.gif at both facing directions and all scales, without clipping; reduced motion hides FX.
 - [ ] Ability, run, idle, attacks, sleep, and reduced motion render correctly.
 - [ ] Walking moves only the crab; pinned session cards stay anchored and the moving crab remains clickable.
 - [ ] Sleeping crab wakes after 1–4 minutes, walks and attacks 1–3 times over 15–45 seconds, then sleeps; new activity and motion preferences cancel outings.

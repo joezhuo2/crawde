@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.19 — 2026-10-27
+
+- Layer the supplied attack 1 and attack 2 FX at the claw tips, synchronized to the strike frames in CrabComplete.gif.
+- Mirror and scale effects with the crab, preserve the complete sparks, and suppress them with reduced motion.
+
 ## 0.1.18 — 2026-10-27
 
 - Remove edge snapping when placing the crab; only correct positions outside the monitor work area to keep the crab and chat cards visible.

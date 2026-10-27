@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { animations, framePosition, type Animation } from './animation';
+import { animations, attackEffect, framePosition, type Animation } from './animation';
 
 interface Props {
   animation: Animation;
@@ -13,6 +13,7 @@ export function Sprite({ animation, scale = 3, reducedMotion = false, facing = 1
   const [frame, setFrame] = useState(0);
   const [systemReduced, setSystemReduced] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
   const spec = animations[animation];
+  const effect = reducedMotion || systemReduced ? null : attackEffect(animation, frame);
 
   useEffect(() => {
     const media = matchMedia('(prefers-reduced-motion: reduce)');
@@ -42,7 +43,17 @@ export function Sprite({ animation, scale = 3, reducedMotion = false, facing = 1
       backgroundSize: `${spec.columns * 64 * scale}px auto`,
       backgroundPosition: framePosition(frame, spec.columns, scale),
       transform: `scaleX(${facing})`,
-    }} />
+    }}>
+      {effect && <span className="sprite-fx" aria-hidden="true" style={{
+        // The character viewport starts at (16, 28) inside the original cell.
+        // Render the whole FX cell so sparks beyond that viewport stay visible.
+        left: -16 * scale, top: -28 * scale,
+        width: 64 * scale, height: 64 * scale,
+        backgroundImage: `url(${effect.image})`,
+        backgroundSize: `${3 * 64 * scale}px auto`,
+        backgroundPosition: `${-effect.frame * 64 * scale}px 0px`,
+      }} />}
+    </span>
     {animation === 'sleep' && <span className={`sleep-trail ${reducedMotion || systemReduced ? 'still' : ''}`} aria-hidden="true" style={{ left: facing > 0 ? '72%' : '24%', '--sleep-direction': facing } as React.CSSProperties}>
       {[0, 1, 2].map(index => <span key={index} style={{ animationDelay: `${index * 3.2 / 3}s` }}>z</span>)}
     </span>}

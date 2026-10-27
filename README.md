@@ -62,7 +62,7 @@ leave Crawde running and offer a retry; the About tab also shows update status.
 ### A crab on your desktop
 
 - **Always on top:** an animated pixel crab with a separate, high-resolution claw tray icon.
-- **Click and drag:** click for its ability animation; drag to move it. It snaps to
+- **Click and drag:** click for a random ability or attack animation; drag to move it. It snaps to
   all four screen edges and remembers positions for each monitor arrangement.
 - **Little walks:** only the crab wanders left and right within 100 pixels of its
   placed spot; session cards stay anchored. While Claude works, it pauses 4–8 seconds
@@ -99,7 +99,7 @@ These controls live only in the right-click menus and save immediately.
 | Keep the list open | Pin button in the chat heading |
 | Open a conversation | Click its card |
 | Dismiss a card | Its × button |
-| Open Claude and play the crab ability | Click the crab, or focus it and press Enter/Space |
+| Open Claude and play a random ability or attack | Click the crab, or focus it and press Enter/Space |
 | Move the crab | Drag it |
 | Quit | **Right-click → Quit Crawde** |
 

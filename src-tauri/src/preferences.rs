@@ -21,7 +21,6 @@ pub struct Preferences {
     pub error_sound: bool,
     pub reminders: bool,
     pub open_target: String,
-    pub check_on_open: bool,
 }
 
 impl Default for Preferences {
@@ -42,7 +41,6 @@ impl Default for Preferences {
             error_sound: true,
             reminders: true,
             open_target: "desktop".into(),
-            check_on_open: true,
         }
     }
 }
@@ -161,6 +159,17 @@ pub fn update_preference(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn legacy_update_opt_out_is_ignored() {
+        let prefs: Preferences =
+            serde_json::from_str(r#"{"checkOnOpen":false,"sound":false}"#).unwrap();
+        assert!(!prefs.sound);
+        assert!(serde_json::to_value(prefs)
+            .unwrap()
+            .get("checkOnOpen")
+            .is_none());
+    }
+
     #[test]
     fn field_updates_preserve_other_preferences() {
         let current = Preferences {

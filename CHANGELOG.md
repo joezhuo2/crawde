@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.17 — 2026-10-27
+
+- Remove the rectangular focus outline around the crab when clicking, focusing, or dragging it. Other controls retain their focus indicators.
+
 ## 0.1.16 — 2026-10-27
 
 - Randomly play ability, attack 1, or attack 2 with equal probability when clicking the crab or pressing Enter/Space; still open Claude.

@@ -27,6 +27,7 @@
 - [ ] Walking moves only the crab; pinned session cards stay anchored and the moving crab remains clickable.
 - [ ] Sleeping crab wakes after 1–4 minutes, walks and attacks 1–3 times over 15–45 seconds, then sleeps; new activity and motion preferences cancel outings.
 - [ ] Walks pause during hover, dragging, keyboard focus, sleep, and reduced motion.
+- [ ] Crab has no rectangular outline on click, focus, or drag; keyboard activation still works and other controls retain focus indicators.
 - [ ] Drag versus click is distinct; all four edges snap; display positions survive restart.
 - [ ] Transparent areas pass clicks through; visible controls remain usable.
 - [ ] Tray and hotkey toggle visibility; both right-click menus offer Settings, preference toggles, hook actions, update actions, and Quit.

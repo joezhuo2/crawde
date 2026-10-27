@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.12 — 2026-10-27
+
+- Add an accessible × button to dismiss notification and error banners.
+- Keep dismissed messages hidden while allowing new errors or retried actions to show feedback again.
+
 ## 0.1.11 — 2026-10-27
 
 - Move top-docked chat cards up into the hidden action-button space while collapsed.

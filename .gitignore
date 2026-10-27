@@ -6,3 +6,4 @@ src-tauri/gen/
 .DS_Store
 artifacts/
 *.tsbuildinfo
+__pycache__/

@@ -19,6 +19,22 @@ pub fn forward_hook() -> Result<(), String> {
     if body.len() > 65_536 {
         return Err("Hook payload is too large".into());
     }
+    let args: Vec<String> = std::env::args().collect();
+    if let Some(index) = args.iter().position(|arg| arg == "--wsl-distro") {
+        let distro = args.get(index + 1).ok_or("Missing WSL distro")?;
+        if !crate::wsl::valid_distro(distro) {
+            return Err("Invalid WSL distro".into());
+        }
+        let mut event: Value = serde_json::from_slice(&body).map_err(|e| e.to_string())?;
+        event
+            .as_object_mut()
+            .ok_or("Invalid event")?
+            .insert("wsl_distro".into(), json!(distro));
+        body = serde_json::to_vec(&event).map_err(|e| e.to_string())?;
+        if body.len() > 65_536 {
+            return Err("Hook payload is too large".into());
+        }
+    }
     let path = PathBuf::from(std::env::var_os("APPDATA").ok_or("APPDATA is unavailable")?)
         .join("com.joezhuo.crawde/bridge-token");
     let token = fs::read_to_string(path).map_err(|e| e.to_string())?;
@@ -248,7 +264,8 @@ pub fn configure_hooks(app: AppHandle, install: bool) -> Result<(), String> {
         serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?,
     )
     .map_err(|e| e.to_string())?;
-    fs::rename(staging, path).map_err(|e| e.to_string())
+    fs::rename(staging, path).map_err(|e| e.to_string())?;
+    crate::wsl::configure(&executable.to_string_lossy(), install, EVENTS)
 }
 
 pub fn installed() -> bool {

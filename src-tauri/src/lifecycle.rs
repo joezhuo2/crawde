@@ -288,7 +288,11 @@ fn start_presence(app: AppHandle) {
             let open = system.processes().values().any(|p| {
                 let name = p.name().to_string_lossy().to_ascii_lowercase();
                 name == "claude.exe" || name == "claude"
-            });
+            }) || app
+                .state::<AppState>()
+                .activity
+                .lock()
+                .is_ok_and(|activity| activity.has_recent_work(crate::bridge::now()));
             let state = app.state::<AppState>();
             let mut lifecycle = state.lifecycle.lock().unwrap();
             let was_open = lifecycle.claude_open;

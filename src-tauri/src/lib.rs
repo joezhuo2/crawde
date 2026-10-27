@@ -142,6 +142,7 @@ pub fn run() {
             preferences::update_preference,
             notifications::test_sound,
             navigation::open_chat,
+            navigation::open_claude,
             navigation::new_chat,
             updates::check_updates,
             updates::open_releases

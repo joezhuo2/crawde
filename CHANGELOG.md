@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.9 — 2026-10-27
+
+- Click the crab, or press Enter/Space while it is focused, to open Claude Desktop and play the crab ability.
+- Keep dragging and cancelled gestures from opening Claude.
+
 ## 0.1.8 — 2026-10-27
 
 - Install activity hooks in existing Claude configurations inside WSL distributions.

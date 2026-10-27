@@ -9,6 +9,13 @@ pub struct Navigation {
     pub current_distro: Option<String>,
 }
 
+#[tauri::command]
+pub fn open_claude(app: AppHandle) -> Result<(), String> {
+    app.opener()
+        .open_url("claude://", None::<&str>)
+        .map_err(|e| format!("Could not open Claude. Check that Claude Desktop is installed: {e}"))
+}
+
 fn launch_wsl(distro: &str, cwd: &str, id: Option<&str>) -> Result<(), String> {
     if !crate::wsl::valid_distro(distro) || !cwd.starts_with('/') || cwd.contains('\0') {
         return Err("Invalid WSL project".into());

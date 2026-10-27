@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.20 — 2026-10-27
+
+- Preserve the crab’s screen position when dropped in the middle of the screen; changing chat direction no longer moves it between the ends of its transparent window.
+- Save the independent crab anchor across restarts, choose chat direction from the crab’s screen half, and scroll overflowing cards within the available space.
+- Keep clipped chat controls out of native hit testing and apply drop coordinates immediately.
+
 ## 0.1.19 — 2026-10-27
 
 - Layer the supplied attack 1 and attack 2 FX at the claw tips, synchronized to the strike frames in CrabComplete.gif.

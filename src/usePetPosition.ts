@@ -1,31 +1,12 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { useWander } from './useWander';
 import { command, native } from './native';
 
-export function usePetPosition(interacting: boolean, roaming: boolean, onAbility: () => void) {
+export function usePetPosition(interacting: boolean, roaming: boolean, working: boolean, layoutKey: string, onAbility: () => void) {
   const down = useRef<{ x: number; y: number; moved: boolean; ready: Promise<void> } | null>(null);
-  const [running, setRunning] = useState(false);
-  const [facing, setFacing] = useState(1);
-  const runTimer = useRef<number>(0);
-
-  useEffect(() => {
-    if (!native) return;
-    void command('set_interacting', { interacting }).catch(() => {});
-    if (interacting) setRunning(false);
-  }, [interacting]);
-
-  useEffect(() => {
-    if (!native || interacting || !roaming) return;
-    const timer = window.setInterval(async () => {
-      try {
-        const delta = await command<number>('roam', { direction: Math.random() > .5 ? 1 : -1 });
-        if (delta) {
-          setFacing(delta > 0 ? 1 : -1); setRunning(true);
-          runTimer.current = window.setTimeout(() => setRunning(false), 1250);
-        }
-      } catch { /* Native diagnostics remain visible through the activity snapshot. */ }
-    }, 35_000 + Math.random() * 25_000);
-    return () => { window.clearInterval(timer); window.clearTimeout(runTimer.current); setRunning(false); };
-  }, [interacting, roaming]);
+  const [dragging, setDragging] = useState(false);
+  const [keyboardFocused, setKeyboardFocused] = useState(false);
+  const wander = useWander(interacting || dragging || keyboardFocused, roaming, working, layoutKey);
 
   useEffect(() => {
     if (!native) return;
@@ -33,7 +14,7 @@ export function usePetPosition(interacting: boolean, roaming: boolean, onAbility
     const send = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        const regions = Array.from(document.querySelectorAll('.pet-anchor, .chat-list.expanded, .chat-bubble, .list-heading, .pagination, .notice, .connect-bubble'))
+        const regions = Array.from(document.querySelectorAll('.pet-button, .chat-list.expanded, .chat-bubble, .list-heading, .pagination, .notice, .connect-bubble'))
           .filter(node => getComputedStyle(node).opacity !== '0')
           .map(node => { const r = node.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; });
         void command('hit_regions', { regions }).catch(() => {});
@@ -41,13 +22,15 @@ export function usePetPosition(interacting: boolean, roaming: boolean, onAbility
     };
     const observer = new MutationObserver(send);
     observer.observe(document.getElementById('root')!, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
-    const timer = window.setInterval(send, 250);
+    const timer = window.setInterval(send, wander.running ? 40 : 250);
     send();
     return () => { observer.disconnect(); window.clearInterval(timer); cancelAnimationFrame(frame); };
-  }, []);
+  }, [wander.running]);
 
   const pointerDown = (event: PointerEvent<HTMLButtonElement>) => {
     if (event.button !== 0) return;
+    wander.stop();
+    setDragging(true);
     event.currentTarget.setPointerCapture(event.pointerId);
     down.current = { x: event.screenX, y: event.screenY, moved: false,
       ready: native ? command('drag_start').catch(() => {}) : Promise.resolve() };
@@ -65,7 +48,13 @@ export function usePetPosition(interacting: boolean, roaming: boolean, onAbility
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     await drag.ready;
     if (native) await command('drag_end').catch(() => {});
+    if (drag.moved) wander.placed();
+    setDragging(false);
     if (!drag.moved && event.type !== 'pointercancel') onAbility();
   };
-  return { running, facing, handlers: { onPointerDown: pointerDown, onPointerMove: pointerMove, onPointerUp: pointerUp, onPointerCancel: pointerUp } };
+  return { petRef: wander.ref, running: wander.running, facing: wander.facing, handlers: {
+    onPointerDown: pointerDown, onPointerMove: pointerMove, onPointerUp: pointerUp, onPointerCancel: pointerUp,
+    onFocus: (event: React.FocusEvent<HTMLButtonElement>) => setKeyboardFocused(event.currentTarget.matches(':focus-visible')),
+    onBlur: () => setKeyboardFocused(false),
+  } };
 }

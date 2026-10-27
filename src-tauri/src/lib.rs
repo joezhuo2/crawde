@@ -142,8 +142,6 @@ pub fn run() {
             position::drag_move,
             position::drag_end,
             position::hit_regions,
-            position::set_interacting,
-            position::roam,
             lifecycle::show_settings,
             lifecycle::show_context_menu,
             lifecycle::quit,

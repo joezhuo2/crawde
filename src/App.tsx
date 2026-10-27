@@ -36,7 +36,7 @@ export function App() {
   };
   const activatePet = () => { behavior.ability(); void act('open_claude'); };
   const working = behavior.exploring || activity.sessions.some(session => session.status === 'working');
-  const position = usePetPosition(hovered, preferences.roaming && !behavior.sleeping && !behavior.reduced && behavior.animation === 'idle', working, `${activity.dockRight}-${preferences.scale}`, activatePet);
+  const position = usePetPosition(hovered, preferences.roaming && !behavior.sleeping && !behavior.reduced && behavior.animation === 'idle', working, `${activity.petX}-${activity.petY}-${preferences.scale}`, activatePet);
   const dismissChat = async (id: string) => {
     setDismissedNotice(null);
     const session = activity.sessions.find(s => s.id === id);
@@ -47,11 +47,14 @@ export function App() {
     } catch (error) { setNotice(String(error)); }
   };
   return <main className={`pet-scene ${expanded ? 'is-expanded' : ''} ${activity.dockRight ? 'dock-right' : ''} ${activity.dockTop ? 'dock-top' : ''}`} aria-label="Crawde desktop companion"
+    style={{ '--pet-x': `${activity.petX ?? 16}px`, '--pet-y': activity.petY == null ? `calc(100% - ${24 * preferences.scale + 6}px)` : `${activity.petY}px`, '--pet-width': `${32 * preferences.scale}px`, '--pet-height': `${24 * preferences.scale}px` } as React.CSSProperties}
     onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
     onContextMenu={event => { event.preventDefault(); void act('show_context_menu'); }}>
+    <div className="chat-stack">
     <ChatBubbles sessions={sessions} expanded={expanded} pinned={pinned} onPin={() => setPinned(p => !p)} onOpen={id => void act('open_chat', { id })} onDismiss={id => void dismissChat(id)} />
     {expanded && currentNotice && currentNotice !== dismissedNotice && <div className="notice" role="status"><span>{currentNotice}</span><button className="icon-button notice-close" aria-label="Dismiss notification" onClick={() => setDismissedNotice(currentNotice)}><X size={14} weight="bold" /></button></div>}
     {expanded && !activity.hooksInstalled && native && <button className="connect-bubble" onClick={() => void act('configure_hooks', { install: true })}>Connect to Claude Code <span>Enable activity hooks</span></button>}
+    </div>
     <div className="pet-anchor">
       <button ref={position.petRef} className="pet-button" aria-label="Open Claude. Drag to move Crawde." {...position.handlers} onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) { e.preventDefault(); activatePet(); } }}>
         <Sprite animation={position.running ? 'run' : behavior.animation} scale={preferences.scale} reducedMotion={behavior.reduced} facing={position.facing} onComplete={behavior.complete} />

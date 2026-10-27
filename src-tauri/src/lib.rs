@@ -35,6 +35,8 @@ struct Snapshot {
     bridge_error: Option<String>,
     dock_right: bool,
     dock_top: bool,
+    pet_x: Option<f64>,
+    pet_y: Option<f64>,
     claude_open: bool,
     preferences: preferences::Preferences,
     last_prompt_at: u64,
@@ -45,9 +47,9 @@ struct Snapshot {
 
 #[tauri::command]
 fn snapshot(state: State<AppState>) -> Result<Snapshot, String> {
-    let (dock_right, dock_top) = {
+    let (dock_right, dock_top, pet_x, pet_y) = {
         let position = state.position.lock().map_err(|e| e.to_string())?;
-        (position.right, position.top)
+        (position.right, position.top, position.pet_x, position.pet_y)
     };
     let (sessions, last_prompt_at, last_activity_at, last_event_at, recent_work) = {
         let mut activity = state.activity.lock().map_err(|e| e.to_string())?;
@@ -73,6 +75,8 @@ fn snapshot(state: State<AppState>) -> Result<Snapshot, String> {
             .clone(),
         dock_right,
         dock_top,
+        pet_x,
+        pet_y,
         claude_open: state
             .lifecycle
             .lock()

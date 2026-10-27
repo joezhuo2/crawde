@@ -7,6 +7,10 @@ use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, State};
 pub struct SavedPosition {
     pub x: i32,
     pub y: i32,
+    #[serde(default)]
+    pub pet_x: Option<f64>,
+    #[serde(default)]
+    pub pet_y: Option<f64>,
 }
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct PositionFile {
@@ -27,6 +31,8 @@ pub struct PositionState {
     pub regions: Vec<HitRegion>,
     pub right: bool,
     pub top: bool,
+    pub pet_x: Option<f64>,
+    pub pet_y: Option<f64>,
 }
 
 fn monitor_key(monitor: &tauri::Monitor) -> String {
@@ -80,36 +86,103 @@ pub fn restore(app: &AppHandle) -> Result<(), String> {
         .unwrap_or(SavedPosition {
             x: area.position.x + 8,
             y: area.position.y + area.size.height as i32 - size.height as i32 - 8,
+            pet_x: None,
+            pet_y: None,
         });
-    let x = position.x.clamp(
-        area.position.x,
-        (area.position.x + area.size.width as i32 - size.width as i32).max(area.position.x),
+    let scale = window.scale_factor().map_err(|e| e.to_string())?;
+    let pet_scale = state.preferences.lock().map_err(|e| e.to_string())?.scale as f64;
+    // Old position files stored only the window origin. Keep their visible crab
+    // location on first migration, then persist its independent local anchor.
+    let old_top =
+        position.y + size.height as i32 / 2 < area.position.y + area.size.height as i32 / 2;
+    let old_right =
+        position.x + size.width as i32 / 2 > area.position.x + area.size.width as i32 / 2;
+    let pet = HitRegion {
+        x: position.pet_x.unwrap_or(if old_right {
+            size.width as f64 / scale - 16.0 - 32.0 * pet_scale
+        } else {
+            16.0
+        }),
+        y: position.pet_y.unwrap_or(if old_top {
+            8.0
+        } else {
+            size.height as f64 / scale - 6.0 - 24.0 * pet_scale
+        }),
+        width: 32.0 * pet_scale,
+        height: 24.0 * pet_scale,
+    };
+    place_pet(
+        app,
+        PhysicalPosition::new(position.x, position.y),
+        &pet,
+        monitor,
+    )
+}
+
+// Preserve the screen-space pet coordinate while relocating the transparent
+// window around it. Only the pet itself is constrained to the work area.
+fn place_axis(
+    pet: f64,
+    pet_size: f64,
+    preferred_window: f64,
+    window_size: f64,
+    min: f64,
+    length: f64,
+) -> (i32, f64) {
+    let pet = pet.clamp(min, (min + length - pet_size).max(min));
+    let window = preferred_window
+        .clamp(min, (min + length - window_size).max(min))
+        .round() as i32;
+    (window, pet - window as f64)
+}
+
+fn place_pet(
+    app: &AppHandle,
+    origin: PhysicalPosition<i32>,
+    pet: &HitRegion,
+    monitor: &tauri::Monitor,
+) -> Result<(), String> {
+    let window = app
+        .get_webview_window("pet")
+        .ok_or("Pet window unavailable")?;
+    let area = monitor.work_area();
+    let size = window.outer_size().map_err(|e| e.to_string())?;
+    let scale = window.scale_factor().map_err(|e| e.to_string())?;
+    let screen_x = origin.x as f64 + pet.x * scale;
+    let screen_y = origin.y as f64 + pet.y * scale;
+    let top = screen_y + pet.height * scale / 2.0
+        < area.position.y as f64 + area.size.height as f64 / 2.0;
+    let preferred_y = if top {
+        screen_y - 8.0 * scale
+    } else {
+        screen_y + (pet.height + 6.0) * scale - size.height as f64
+    };
+    let (x, pet_x) = place_axis(
+        screen_x,
+        pet.width * scale,
+        origin.x as f64,
+        size.width as f64,
+        area.position.x as f64,
+        area.size.width as f64,
     );
-    let y = position.y.clamp(
-        area.position.y,
-        (area.position.y + area.size.height as i32 - size.height as i32).max(area.position.y),
+    let (y, pet_y) = place_axis(
+        screen_y,
+        pet.height * scale,
+        preferred_y,
+        size.height as f64,
+        area.position.y as f64,
+        area.size.height as f64,
     );
     window
         .set_position(PhysicalPosition::new(x, y))
         .map_err(|e| e.to_string())?;
-    update_layout(app)
-}
-
-fn update_layout(app: &AppHandle) -> Result<(), String> {
-    let window = app
-        .get_webview_window("pet")
-        .ok_or("Pet window unavailable")?;
-    let monitor = window
-        .current_monitor()
-        .map_err(|e| e.to_string())?
-        .ok_or("No display")?;
-    let area = monitor.work_area();
-    let at = window.outer_position().map_err(|e| e.to_string())?;
-    let size = window.outer_size().map_err(|e| e.to_string())?;
     let state = app.state::<AppState>();
     let mut position = state.position.lock().map_err(|e| e.to_string())?;
-    position.right = at.x + size.width as i32 / 2 > area.position.x + area.size.width as i32 / 2;
-    position.top = at.y + size.height as i32 / 2 < area.position.y + area.size.height as i32 / 2;
+    position.right =
+        screen_x + pet.width * scale / 2.0 > area.position.x as f64 + area.size.width as f64 / 2.0;
+    position.top = top;
+    position.pet_x = Some(pet_x / scale);
+    position.pet_y = Some(pet_y / scale);
     Ok(())
 }
 
@@ -144,44 +217,58 @@ pub fn drag_move(app: AppHandle, state: State<AppState>) -> Result<(), String> {
     Ok(())
 }
 
-// Only correct positions that would put the window outside the work area.
-pub fn bounded(value: i32, min: i32, max: i32) -> i32 {
-    value.clamp(min, max.max(min))
-}
-
 #[tauri::command]
-pub fn drag_end(app: AppHandle, state: State<AppState>) -> Result<(), String> {
+pub fn drag_end(
+    app: AppHandle,
+    state: State<AppState>,
+    pet: HitRegion,
+) -> Result<crate::Snapshot, String> {
     state.position.lock().map_err(|e| e.to_string())?.drag = None;
+    if ![pet.x, pet.y, pet.width, pet.height]
+        .iter()
+        .all(|v| v.is_finite())
+        || pet.width <= 0.0
+        || pet.height <= 0.0
+    {
+        return Err("Invalid pet bounds".into());
+    }
     let window = app
         .get_webview_window("pet")
         .ok_or("Pet window unavailable")?;
+    let origin = window.outer_position().map_err(|e| e.to_string())?;
+    let scale = window.scale_factor().map_err(|e| e.to_string())?;
+    let center_x = origin.x as f64 + (pet.x + pet.width / 2.0) * scale;
+    let center_y = origin.y as f64 + (pet.y + pet.height / 2.0) * scale;
     let monitor = window
-        .current_monitor()
+        .available_monitors()
         .map_err(|e| e.to_string())?
+        .into_iter()
+        .find(|m| {
+            let at = m.position();
+            let size = m.size();
+            center_x >= at.x as f64
+                && center_x < at.x as f64 + size.width as f64
+                && center_y >= at.y as f64
+                && center_y < at.y as f64 + size.height as f64
+        })
+        .or(window.current_monitor().map_err(|e| e.to_string())?)
         .ok_or("No display")?;
-    let area = monitor.work_area();
-    let size = window.outer_size().map_err(|e| e.to_string())?;
+    place_pet(&app, origin, &pet, &monitor)?;
     let at = window.outer_position().map_err(|e| e.to_string())?;
-    let at = PhysicalPosition::new(
-        bounded(
-            at.x,
-            area.position.x,
-            area.position.x + area.size.width as i32 - size.width as i32,
-        ),
-        bounded(
-            at.y,
-            area.position.y,
-            area.position.y + area.size.height as i32 - size.height as i32,
-        ),
-    );
-    window.set_position(at).map_err(|e| e.to_string())?;
     {
         let mut position = state.position.lock().map_err(|e| e.to_string())?;
         let key = monitor_key(&monitor);
-        position
-            .saved
-            .monitors
-            .insert(key.clone(), SavedPosition { x: at.x, y: at.y });
+        let pet_x = position.pet_x;
+        let pet_y = position.pet_y;
+        position.saved.monitors.insert(
+            key.clone(),
+            SavedPosition {
+                x: at.x,
+                y: at.y,
+                pet_x,
+                pet_y,
+            },
+        );
         position.saved.last_monitor = Some(key);
         let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
         std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
@@ -191,7 +278,7 @@ pub fn drag_end(app: AppHandle, state: State<AppState>) -> Result<(), String> {
         )
         .map_err(|e| e.to_string())?;
     }
-    update_layout(&app)
+    crate::snapshot(state)
 }
 
 #[tauri::command]
@@ -245,13 +332,40 @@ pub fn start_hit_testing(app: AppHandle) {
 mod tests {
     use super::*;
     #[test]
-    fn bounds_preserve_near_edge_positions_and_handle_small_displays() {
-        assert_eq!(bounded(-1910, -1920, -350), -1910);
-        assert_eq!(bounded(-360, -1920, -350), -360);
-        assert_eq!(bounded(-2000, -1920, -350), -1920);
-        assert_eq!(bounded(0, -1920, -350), -350);
-        assert_eq!(bounded(500, 0, -10), 0);
-        assert_eq!(bounded(12, 0, 1000), 12);
-        assert_eq!(bounded(990, 0, 1000), 990);
+    fn saved_anchors_round_trip_and_legacy_positions_still_load() {
+        let legacy: SavedPosition = serde_json::from_str(r#"{"x":24,"y":100}"#).unwrap();
+        assert!(legacy.pet_x.is_none() && legacy.pet_y.is_none());
+        let saved = SavedPosition {
+            x: 24,
+            y: 100,
+            pet_x: Some(16.0),
+            pet_y: Some(220.0),
+        };
+        let restored: SavedPosition =
+            serde_json::from_slice(&serde_json::to_vec(&saved).unwrap()).unwrap();
+        assert_eq!(restored.pet_y, Some(220.0));
+        assert_eq!(restored.pet_x, Some(16.0));
+    }
+    #[test]
+    fn middle_drops_keep_pet_coordinates_when_window_moves() {
+        for screen_y in [160.0, 300.0, 450.0, 540.0, 700.0, 900.0] {
+            let preferred = if screen_y + 36.0 < 540.0 {
+                screen_y - 8.0
+            } else {
+                screen_y + 78.0 - 520.0
+            };
+            let (window, local) = place_axis(screen_y, 72.0, preferred, 520.0, 0.0, 1080.0);
+            assert_eq!(window as f64 + local, screen_y);
+            assert!(local >= 0.0 && local + 72.0 <= 520.0);
+        }
+    }
+    #[test]
+    fn bounds_handle_negative_monitors_dpi_and_offscreen_pet() {
+        let (window, local) = place_axis(-500.0, 108.0, -800.0, 780.0, -1080.0, 1080.0);
+        assert_eq!(window as f64 + local, -500.0);
+        let (window, local) = place_axis(1050.0, 72.0, 608.0, 520.0, 0.0, 1080.0);
+        assert_eq!(window as f64 + local, 1008.0);
+        let (window, local) = place_axis(200.0, 72.0, -242.0, 520.0, 0.0, 480.0);
+        assert_eq!(window as f64 + local, 200.0);
     }
 }

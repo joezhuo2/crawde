@@ -22,15 +22,22 @@ export function useActivity() {
     if (!native) return;
     let live = true;
     let timeout: number;
+    let layoutRevision = 0;
+    const positioned = (event: Event) => {
+      layoutRevision++;
+      setSnapshot((event as CustomEvent<Snapshot>).detail);
+    };
+    window.addEventListener('pet-positioned', positioned);
     async function poll() {
+      const revision = layoutRevision;
       try {
         const next = await command<Snapshot>('snapshot');
-        if (live) { setSnapshot(next); setError(null); }
+        if (live && revision === layoutRevision) { setSnapshot(next); setError(null); }
       } catch (e) { if (live) setError(String(e)); }
       if (live) timeout = window.setTimeout(poll, 700);
     }
     void poll();
-    return () => { live = false; window.clearTimeout(timeout); };
+    return () => { window.removeEventListener('pet-positioned', positioned); live = false; window.clearTimeout(timeout); };
   }, []);
   return { ...snapshot, connectionError: error };
 }

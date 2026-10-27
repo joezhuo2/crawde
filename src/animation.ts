@@ -19,3 +19,7 @@ export function framePosition(frame: number, columns: number, scale: number) {
   // Keep the shared 32×24 character region, excluding unused headroom.
   return `${-(frame % columns * 64 + 16) * scale}px ${-(Math.floor(frame / columns) * 64 + 28) * scale}px`;
 }
+
+export function clickAnimation(random = Math.random): Animation {
+  return (['ability', 'attackA', 'attackB'] as const)[Math.floor(random() * 3)];
+}

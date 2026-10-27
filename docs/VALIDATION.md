@@ -7,6 +7,7 @@
 - Subagent deduplication and approval-to-tool transitions.
 - Idempotent hook installation and preservation of unrelated hooks on disconnect.
 - Negative monitor coordinates, edge snapping, and smaller display bounds.
+- Walk cadence during active work, bounded offsets around the placed position, and turning back at window edges.
 - WAV structure and volume scaling.
 - Folder URL encoding and transcript title parsing.
 - Wake-up from tool activity without process detection, continued activity after an old prompt, and sleep after inactivity.
@@ -21,13 +22,15 @@
 - [ ] Hover expands, pin persists while leaving, three-chat pagination works.
 - [ ] Completion checkmark expires after 30 seconds; new prompts restore the chat.
 - [ ] Ability, run, idle, attacks, sleep, and reduced motion render correctly.
+- [ ] Walking moves only the crab; pinned session cards stay anchored and the moving crab remains clickable.
+- [ ] Walks pause during hover, dragging, keyboard focus, sleep, and reduced motion.
 - [ ] Drag versus click is distinct; all four edges snap; display positions survive restart.
 - [ ] Transparent areas pass clicks through; visible controls remain usable.
 - [ ] Tray and hotkey toggle visibility; both right-click menus offer Settings, preference toggles, hook actions, update actions, and Quit.
 - [ ] Moved controls appear only in menus; tray checkmarks and the pet reflect saved state after restart.
 - [ ] Settings save automatically, including rapid changes; startup registration follows the startup preference.
 - [ ] Native sound playback works before the first pet click; mute and volume work.
-- [ ] New chat uses the selected project and clicking a card resumes the correct conversation.
+- [ ] Clicking a card resumes the correct conversation; no new-chat or notification buttons remain beneath the crab.
 - [ ] Install update verifies the checksum, launches the installer before exiting, and stays open on failure.
 - [ ] Both menus show one versioned update action; available updates install on click and checks run on launch even with an old disabled preference.
 - [ ] Update check reports latest version, network errors, and no-release state honestly.

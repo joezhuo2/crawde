@@ -35,7 +35,8 @@ export function App() {
     try { await command(name, args); setNotice(''); } catch (error) { setNotice(String(error)); }
   };
   const activatePet = () => { behavior.ability(); void act('open_claude'); };
-  const position = usePetPosition(expanded, preferences.roaming && !behavior.sleeping && !behavior.reduced && behavior.animation === 'idle', activatePet);
+  const working = activity.sessions.some(session => session.status === 'working');
+  const position = usePetPosition(hovered, preferences.roaming && !behavior.sleeping && !behavior.reduced && behavior.animation === 'idle', working, `${activity.dockRight}-${preferences.scale}`, activatePet);
   const dismissChat = async (id: string) => {
     setDismissedNotice(null);
     const session = activity.sessions.find(s => s.id === id);
@@ -52,7 +53,7 @@ export function App() {
     {expanded && currentNotice && currentNotice !== dismissedNotice && <div className="notice" role="status"><span>{currentNotice}</span><button className="icon-button notice-close" aria-label="Dismiss notification" onClick={() => setDismissedNotice(currentNotice)}><X size={14} weight="bold" /></button></div>}
     {expanded && !activity.hooksInstalled && native && <button className="connect-bubble" onClick={() => void act('configure_hooks', { install: true })}>Connect to Claude Code <span>Enable activity hooks</span></button>}
     <div className="pet-anchor">
-      <button className="pet-button" aria-label="Open Claude. Drag to move Crawde." {...position.handlers} onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) { e.preventDefault(); activatePet(); } }}>
+      <button ref={position.petRef} className="pet-button" aria-label="Open Claude. Drag to move Crawde." {...position.handlers} onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) { e.preventDefault(); activatePet(); } }}>
         <Sprite animation={position.running ? 'run' : behavior.animation} scale={preferences.scale} reducedMotion={behavior.reduced} facing={position.facing} onComplete={behavior.complete} />
       </button>
     </div>

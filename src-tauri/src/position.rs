@@ -27,8 +27,6 @@ pub struct PositionState {
     pub regions: Vec<HitRegion>,
     pub right: bool,
     pub top: bool,
-    pub interacting: bool,
-    pub roam_generation: u64,
 }
 
 fn monitor_key(monitor: &tauri::Monitor) -> String {
@@ -210,67 +208,6 @@ pub fn hit_regions(state: State<AppState>, regions: Vec<HitRegion>) {
     if let Ok(mut position) = state.position.lock() {
         position.regions = regions.into_iter().take(30).collect();
     }
-}
-
-#[tauri::command]
-pub fn set_interacting(state: State<AppState>, interacting: bool) {
-    if let Ok(mut position) = state.position.lock() {
-        position.interacting = interacting;
-        if interacting {
-            position.roam_generation += 1;
-        }
-    }
-}
-
-#[tauri::command]
-pub fn roam(app: AppHandle, state: State<AppState>, direction: i32) -> Result<i32, String> {
-    let window = app
-        .get_webview_window("pet")
-        .ok_or("Pet window unavailable")?;
-    let monitor = window
-        .current_monitor()
-        .map_err(|e| e.to_string())?
-        .ok_or("No display")?;
-    let area = monitor.work_area();
-    let origin = window.outer_position().map_err(|e| e.to_string())?;
-    let size = window.outer_size().map_err(|e| e.to_string())?;
-    let mut position = state.position.lock().map_err(|e| e.to_string())?;
-    if position.interacting || position.drag.is_some() {
-        return Ok(0);
-    }
-    let home = position
-        .saved
-        .monitors
-        .get(&monitor_key(&monitor))
-        .map(|p| p.x)
-        .unwrap_or(area.position.x + 8);
-    let limit = (100.0 * monitor.scale_factor()) as i32;
-    let target = (origin.x + direction.signum() * (32.0 * monitor.scale_factor()) as i32)
-        .clamp(home - limit, home + limit)
-        .clamp(
-            area.position.x,
-            (area.position.x + area.size.width as i32 - size.width as i32).max(area.position.x),
-        );
-    let delta = target - origin.x;
-    position.roam_generation += 1;
-    let generation = position.roam_generation;
-    drop(position);
-    std::thread::spawn(move || {
-        for step in 1..=40 {
-            std::thread::sleep(std::time::Duration::from_millis(30));
-            let state = app.state::<AppState>();
-            let position = state.position.lock().unwrap();
-            if position.roam_generation != generation || position.drag.is_some() {
-                break;
-            }
-            drop(position);
-            let _ = window.set_position(PhysicalPosition::new(
-                origin.x + delta * step / 40,
-                origin.y,
-            ));
-        }
-    });
-    Ok(delta)
 }
 
 pub fn start_hit_testing(app: AppHandle) {

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.14 — 2026-10-27
+
+- Animate only the crab during little walks, keeping the native window and session cards anchored.
+- Wander left and right within 100 pixels of the placed position, with 4–8 second pauses while Claude is working.
+- Keep walks within the window and pause on hover, drag, keyboard focus, sleep, or reduced motion; pinned cards can stay open while the crab walks.
+
 ## 0.1.13 — 2026-10-27
 
 - Remove the new-chat and notification action buttons beneath the crab.

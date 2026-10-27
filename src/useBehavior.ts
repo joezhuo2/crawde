@@ -2,16 +2,26 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Animation } from './animation';
 import type { Session } from './types';
 import { shouldSleep } from './sleep';
+import { scheduleSleepExcursions } from './sleepExcursion';
 
-export function useBehavior(sessions: Session[], claudeOpen: boolean, reduceMotion: boolean, latestPrompt = 0, latestActivity = 0) {
+export function useBehavior(sessions: Session[], claudeOpen: boolean, reduceMotion: boolean, latestPrompt = 0, latestActivity = 0, roaming = true) {
   const [clock, setClock] = useState(Date.now());
   const [action, setAction] = useState<Animation | null>(null);
   const [systemReduced, setSystemReduced] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
   const reduced = reduceMotion || systemReduced;
-  const sleeping = shouldSleep(sessions, claudeOpen, latestPrompt, latestActivity, clock);
+  const sleepDue = shouldSleep(sessions, claudeOpen, latestPrompt, latestActivity, clock);
+  const [excursion, setExcursion] = useState(false);
+  const exploring = sleepDue && roaming && !reduced && excursion;
+  const sleeping = sleepDue && !exploring;
   const approval = sessions.some(s => s.status === 'approval');
   const complete = useCallback(() => setAction(null), []);
   const ability = useCallback(() => setAction('ability'), []);
+
+  useEffect(() => {
+    setExcursion(false);
+    if (!sleepDue || reduced || !roaming) return;
+    return scheduleSleepExcursions(setExcursion, () => setAction(current => current ?? (Math.random() < .5 ? 'attackA' : 'attackB')));
+  }, [sleepDue, reduced, roaming]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setClock(Date.now()), 2000);
@@ -29,5 +39,5 @@ export function useBehavior(sessions: Session[], claudeOpen: boolean, reduceMoti
     return () => clearInterval(timer);
   }, [approval, reduced]);
 
-  return { sleeping, reduced, animation: action ?? (sleeping ? 'sleep' : 'idle'), complete, ability };
+  return { sleeping, exploring, reduced, animation: action ?? (sleeping ? 'sleep' : 'idle'), complete, ability };
 }

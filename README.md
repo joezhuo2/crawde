@@ -79,6 +79,7 @@ leave Crawde running and offer a retry; the About tab also shows update status.
 - **Approvals:** a gentle orange tint, occasional claw strikes, and an optional sound.
 - **Completion:** a checkmark and sound; finished cards leave after thirty seconds.
 - **Dismiss:** each card has an ×. It stays hidden until that chat receives a new prompt.
+- **Restore:** click the notification bell to show all current chats, including those dismissed with ×.
 - **Open or create:** click a card to resume its conversation. The plus button starts
   a chat in the selected project, falling back to the most recently active project.
 

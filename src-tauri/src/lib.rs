@@ -93,6 +93,16 @@ fn dismiss_chat(state: State<AppState>, id: String) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn restore_chats(state: State<AppState>) -> Result<(), String> {
+    state
+        .activity
+        .lock()
+        .map_err(|e| e.to_string())?
+        .restore_dismissed();
+    Ok(())
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _| {
@@ -126,6 +136,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             snapshot,
             dismiss_chat,
+            restore_chats,
             bridge::configure_hooks,
             position::drag_start,
             position::drag_move,

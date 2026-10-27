@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.16 — 2026-10-27
+
+- Randomly play ability, attack 1, or attack 2 with equal probability when clicking the crab or pressing Enter/Space; still open Claude.
+
 ## 0.1.15 — 2026-10-27
 
 - Briefly wake every 1–4 minutes while sleeping, walking and performing 1–3 attacks over 15–45 seconds before sleeping again.

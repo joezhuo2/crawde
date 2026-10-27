@@ -3,6 +3,7 @@
 ## Automated coverage
 
 - Sleep outing timing, attack counts, return to sleep, and timer cancellation.
+- Equal-probability selection of all three click animations.
 - Sprite row/column addressing and nonempty frame counts.
 - Session completion expiry at 30 seconds and revival on a new prompt.
 - Subagent deduplication and approval-to-tool transitions.

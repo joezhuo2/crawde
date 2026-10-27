@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { Animation } from './animation';
+import { clickAnimation, type Animation } from './animation';
 import type { Session } from './types';
 import { shouldSleep } from './sleep';
 import { scheduleSleepExcursions } from './sleepExcursion';
@@ -15,7 +15,7 @@ export function useBehavior(sessions: Session[], claudeOpen: boolean, reduceMoti
   const sleeping = sleepDue && !exploring;
   const approval = sessions.some(s => s.status === 'approval');
   const complete = useCallback(() => setAction(null), []);
-  const ability = useCallback(() => setAction('ability'), []);
+  const ability = useCallback(() => setAction(clickAnimation()), []);
 
   useEffect(() => {
     setExcursion(false);

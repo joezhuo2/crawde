@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.11 — 2026-10-27
+
+- Move top-docked chat cards up into the hidden action-button space while collapsed.
+- Slide cards down smoothly when controls appear, respecting reduced motion.
+
 ## 0.1.10 — 2026-10-27
 
 - Clicking the notification bell restores chats dismissed with × and expands the chat list.

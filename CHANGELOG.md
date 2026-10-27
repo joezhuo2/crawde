@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.18 — 2026-10-27
+
+- Remove edge snapping when placing the crab; only correct positions outside the monitor work area to keep the crab and chat cards visible.
+- Preserve automatic downward/upward chat placement in the top/bottom half of the screen.
+
 ## 0.1.17 — 2026-10-27
 
 - Remove the rectangular focus outline around the crab when clicking, focusing, or dragging it. Other controls retain their focus indicators.

@@ -62,8 +62,9 @@ leave Crawde running and offer a retry; the About tab also shows update status.
 ### A crab on your desktop
 
 - **Always on top:** an animated pixel crab with a separate, high-resolution claw tray icon.
-- **Click and drag:** click for a random ability or attack animation; drag to move it. It snaps to
-  all four screen edges and remembers positions for each monitor arrangement.
+- **Click and drag:** click for a random ability or attack animation; drag to move it. Place it freely without edge snapping; it stays within the screen work area
+  and remembers positions for each monitor arrangement. Chats open downward in
+  the top half and upward in the bottom half.
 - **Little walks:** only the crab wanders left and right within 100 pixels of its
   placed spot; session cards stay anchored. While Claude works, it pauses 4–8 seconds
   between walks (35–60 seconds when idle). Hovering, dragging, keyboard focus,

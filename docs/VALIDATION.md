@@ -8,7 +8,7 @@
 - Session completion expiry at 30 seconds and revival on a new prompt.
 - Subagent deduplication and approval-to-tool transitions.
 - Idempotent hook installation and preservation of unrelated hooks on disconnect.
-- Negative monitor coordinates, edge snapping, and smaller display bounds.
+- Negative monitor coordinates, free placement near edges, and smaller display bounds.
 - Walk cadence during active work, bounded offsets around the placed position, and turning back at window edges.
 - WAV structure and volume scaling.
 - Folder URL encoding and transcript title parsing.
@@ -28,7 +28,7 @@
 - [ ] Sleeping crab wakes after 1–4 minutes, walks and attacks 1–3 times over 15–45 seconds, then sleeps; new activity and motion preferences cancel outings.
 - [ ] Walks pause during hover, dragging, keyboard focus, sleep, and reduced motion.
 - [ ] Crab has no rectangular outline on click, focus, or drag; keyboard activation still works and other controls retain focus indicators.
-- [ ] Drag versus click is distinct; all four edges snap; display positions survive restart.
+- [ ] Drag versus click is distinct; near-edge placement stays put, off-screen positions are corrected, chats expand down/up in the top/bottom half; display positions survive restart.
 - [ ] Transparent areas pass clicks through; visible controls remain usable.
 - [ ] Tray and hotkey toggle visibility; both right-click menus offer Settings, preference toggles, hook actions, update actions, and Quit.
 - [ ] Moved controls appear only in menus; tray checkmarks and the pet reflect saved state after restart.

@@ -2,6 +2,7 @@
 
 ## Automated coverage
 
+- Sleep outing timing, attack counts, return to sleep, and timer cancellation.
 - Sprite row/column addressing and nonempty frame counts.
 - Session completion expiry at 30 seconds and revival on a new prompt.
 - Subagent deduplication and approval-to-tool transitions.
@@ -23,6 +24,7 @@
 - [ ] Completion checkmark expires after 30 seconds; new prompts restore the chat.
 - [ ] Ability, run, idle, attacks, sleep, and reduced motion render correctly.
 - [ ] Walking moves only the crab; pinned session cards stay anchored and the moving crab remains clickable.
+- [ ] Sleeping crab wakes after 1–4 minutes, walks and attacks 1–3 times over 15–45 seconds, then sleeps; new activity and motion preferences cancel outings.
 - [ ] Walks pause during hover, dragging, keyboard focus, sleep, and reduced motion.
 - [ ] Drag versus click is distinct; all four edges snap; display positions survive restart.
 - [ ] Transparent areas pass clicks through; visible controls remain usable.

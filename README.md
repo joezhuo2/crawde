@@ -70,6 +70,8 @@ leave Crawde running and offer a retry; the About tab also shows update status.
   sleep, and reduced motion pause roaming; pinned cards can stay open during walks.
 - **Sleep:** after ten minutes without activity, the crab slows down and little
   “zzz” letters drift away. Tools and subagents keep it awake while Claude works.
+  While sleeping, it wakes every 1–4 minutes to walk and perform 1–3 attacks over
+  15–45 seconds, then sleeps again. Little walks and reduced motion control these outings.
 - **Reduced motion:** respects Windows preferences and Crawde's own setting.
 
 ### Follow your chats

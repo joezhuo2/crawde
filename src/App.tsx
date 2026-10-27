@@ -28,14 +28,14 @@ export function App() {
     return () => { disposed = true; unlisten?.(); };
   }, []);
   const preferences = activity.preferences ?? defaults;
-  const behavior = useBehavior(activity.sessions, activity.claudeOpen ?? !native, preferences.reducedMotion, activity.lastPromptAt, activity.lastActivityAt);
+  const behavior = useBehavior(activity.sessions, activity.claudeOpen ?? !native, preferences.reducedMotion, activity.lastPromptAt, activity.lastActivityAt, preferences.roaming);
   useEffect(() => { document.documentElement.dataset.theme = preferences.theme; document.documentElement.dataset.reduced = String(behavior.reduced); }, [preferences.theme, behavior.reduced]);
   const act = async (name: string, args?: Record<string, unknown>) => {
     setDismissedNotice(null);
     try { await command(name, args); setNotice(''); } catch (error) { setNotice(String(error)); }
   };
   const activatePet = () => { behavior.ability(); void act('open_claude'); };
-  const working = activity.sessions.some(session => session.status === 'working');
+  const working = behavior.exploring || activity.sessions.some(session => session.status === 'working');
   const position = usePetPosition(hovered, preferences.roaming && !behavior.sleeping && !behavior.reduced && behavior.animation === 'idle', working, `${activity.dockRight}-${preferences.scale}`, activatePet);
   const dismissChat = async (id: string) => {
     setDismissedNotice(null);

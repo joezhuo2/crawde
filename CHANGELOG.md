@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.15 — 2026-10-27
+
+- Briefly wake every 1–4 minutes while sleeping, walking and performing 1–3 attacks over 15–45 seconds before sleeping again.
+- Respect Little walks and reduced motion, and cancel the cycle when Claude activity resumes.
+
 ## 0.1.14 — 2026-10-27
 
 - Animate only the crab during little walks, keeping the native window and session cards anchored.

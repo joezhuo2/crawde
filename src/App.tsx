@@ -1,4 +1,4 @@
-import { Bell, Plus, PushPin, Gear } from '@phosphor-icons/react';
+import { Bell, Plus, PushPin, Gear, X } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import { Sprite } from './Sprite';
@@ -15,6 +15,9 @@ export function App() {
   const [pinned, setPinned] = useState(false);
   const [opened, setOpened] = useState(false);
   const [notice, setNotice] = useState('');
+  const [dismissedNotice, setDismissedNotice] = useState<string | null>(null);
+  const currentNotice = activity.bridgeError || activity.connectionError || notice;
+  useEffect(() => { setDismissedNotice(null); }, [currentNotice]);
   const [dismissed, setDismissed] = useState<Record<string, number>>({});
   const sessions = activity.sessions.filter(s => dismissed[s.id] === undefined || s.lastPromptAt > dismissed[s.id]);
   const expanded = hovered || pinned || opened;
@@ -29,11 +32,13 @@ export function App() {
   const behavior = useBehavior(activity.sessions, activity.claudeOpen ?? !native, preferences.reducedMotion, activity.lastPromptAt, activity.lastActivityAt);
   useEffect(() => { document.documentElement.dataset.theme = preferences.theme; document.documentElement.dataset.reduced = String(behavior.reduced); }, [preferences.theme, behavior.reduced]);
   const act = async (name: string, args?: Record<string, unknown>) => {
+    setDismissedNotice(null);
     try { await command(name, args); setNotice(''); } catch (error) { setNotice(String(error)); }
   };
   const activatePet = () => { behavior.ability(); void act('open_claude'); };
   const position = usePetPosition(expanded, preferences.roaming && !behavior.sleeping && !behavior.reduced && behavior.animation === 'idle', activatePet);
   const dismissChat = async (id: string) => {
+    setDismissedNotice(null);
     const session = activity.sessions.find(s => s.id === id);
     if (!session) return;
     try {
@@ -42,6 +47,7 @@ export function App() {
     } catch (error) { setNotice(String(error)); }
   };
   const restoreChats = async () => {
+    setDismissedNotice(null);
     try {
       if (native) await command('restore_chats');
       setDismissed({});
@@ -53,7 +59,7 @@ export function App() {
     onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
     onContextMenu={event => { event.preventDefault(); void act('show_context_menu'); }}>
     <ChatBubbles sessions={sessions} expanded={expanded} pinned={pinned} onPin={() => setPinned(p => !p)} onOpen={id => void act('open_chat', { id })} onDismiss={id => void dismissChat(id)} />
-    {expanded && (activity.bridgeError || activity.connectionError || notice) && <div className="notice" role="status">{activity.bridgeError || activity.connectionError || notice}</div>}
+    {expanded && currentNotice && currentNotice !== dismissedNotice && <div className="notice" role="status"><span>{currentNotice}</span><button className="icon-button notice-close" aria-label="Dismiss notification" onClick={() => setDismissedNotice(currentNotice)}><X size={14} weight="bold" /></button></div>}
     {expanded && !activity.hooksInstalled && native && <button className="connect-bubble" onClick={() => void act('configure_hooks', { install: true })}>Connect to Claude Code <span>Enable activity hooks</span></button>}
     <div className="pet-anchor">
       <button className="pet-button" aria-label="Open Claude. Drag to move Crawde." {...position.handlers} onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) { e.preventDefault(); activatePet(); } }}>

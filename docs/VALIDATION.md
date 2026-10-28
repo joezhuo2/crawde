@@ -43,6 +43,7 @@
 - [ ] Install update verifies the checksum, launches the installer before exiting, and stays open on failure.
 - [ ] Both menus show one versioned update action; available updates install on click and checks run on launch even with an old disabled preference.
 - [ ] Update check reports latest version, network errors, and no-release state honestly.
+- [ ] Install latest update: Crawde closes, the installer runs without prompts, and the new version reopens on its own.
 
 Multi-monitor hotplug/DPI changes and the installed startup flow need testing on representative Windows hardware. Public release download detection requires a published GitHub release. Terminal chat navigation resumes in a new tab instead of focusing an existing one.
 

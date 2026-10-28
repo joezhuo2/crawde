@@ -16,10 +16,35 @@ pub fn open_claude(app: AppHandle) -> Result<(), String> {
         .map_err(|e| format!("Could not open Claude. Check that Claude Desktop is installed: {e}"))
 }
 
-fn launch_wsl(distro: &str, cwd: &str, id: Option<&str>) -> Result<(), String> {
+fn valid_wsl(distro: &str, cwd: &str) -> Result<(), String> {
     if !crate::wsl::valid_distro(distro) || !cwd.starts_with('/') || cwd.contains('\0') {
         return Err("Invalid WSL project".into());
     }
+    Ok(())
+}
+
+fn wsl_folder(distro: &str, cwd: &str) -> PathBuf {
+    PathBuf::from(format!(r"\\wsl.localhost\{distro}{}", cwd.replace('/', "\\")))
+}
+
+fn open_wsl(
+    app: &AppHandle,
+    target: &str,
+    distro: &str,
+    cwd: &str,
+    id: Option<&str>,
+) -> Result<(), String> {
+    valid_wsl(distro, cwd)?;
+    if target == "terminal" {
+        return launch_wsl(distro, cwd, id);
+    }
+    app.opener()
+        .open_url(new_code_url(Some(&wsl_folder(distro, cwd))), None::<&str>)
+        .map_err(|e| e.to_string())
+}
+
+fn launch_wsl(distro: &str, cwd: &str, id: Option<&str>) -> Result<(), String> {
+    valid_wsl(distro, cwd)?;
     let mut args = vec![
         "--distribution",
         distro,
@@ -28,7 +53,7 @@ fn launch_wsl(distro: &str, cwd: &str, id: Option<&str>) -> Result<(), String> {
         "--exec",
         "bash",
         "-lic",
-        "exec claude \"$@\"",
+        "claude \"$@\" || exec bash -li",
         "crawde",
     ];
     if let Some(id) = id {
@@ -113,20 +138,20 @@ pub fn open_chat(app: AppHandle, state: State<AppState>, id: String) -> Result<(
         .get(&id)
         .cloned()
         .ok_or("Conversation has expired")?;
-    if let Some(distro) = &session.wsl_distro {
-        launch_wsl(distro, &session.cwd, Some(&id))?;
-        let mut navigation = state.navigation.lock().map_err(|e| e.to_string())?;
-        navigation.current_project = Some(PathBuf::from(session.cwd));
-        navigation.current_distro = Some(distro.clone());
-        return Ok(());
-    }
-    let project = folder(&session.cwd)?;
     let target = state
         .preferences
         .lock()
         .map_err(|e| e.to_string())?
         .open_target
         .clone();
+    if let Some(distro) = &session.wsl_distro {
+        open_wsl(&app, &target, distro, &session.cwd, Some(&id))?;
+        let mut navigation = state.navigation.lock().map_err(|e| e.to_string())?;
+        navigation.current_project = Some(PathBuf::from(session.cwd));
+        navigation.current_distro = Some(distro.clone());
+        return Ok(());
+    }
+    let project = folder(&session.cwd)?;
     if target == "terminal" {
         launch_terminal(&project, Some(&id))?;
     } else {
@@ -159,12 +184,18 @@ pub fn new_code_url(project: Option<&PathBuf>) -> String {
 
 #[tauri::command]
 pub fn new_chat(app: AppHandle, state: State<AppState>, id: Option<String>) -> Result<(), String> {
+    let target = state
+        .preferences
+        .lock()
+        .map_err(|e| e.to_string())?
+        .open_target
+        .clone();
     {
         let navigation = state.navigation.lock().map_err(|e| e.to_string())?;
         if let (Some(distro), Some(project)) =
             (&navigation.current_distro, &navigation.current_project)
         {
-            return launch_wsl(distro, &project.to_string_lossy(), None);
+            return open_wsl(&app, &target, distro, &project.to_string_lossy(), None);
         }
         if navigation.current_project.is_none() {
             let activity = state.activity.lock().map_err(|e| e.to_string())?;
@@ -174,7 +205,7 @@ pub fn new_chat(app: AppHandle, state: State<AppState>, id: Option<String>) -> R
                 .or_else(|| activity.sessions.values().max_by_key(|s| s.updated_at))
             {
                 if let Some(distro) = &session.wsl_distro {
-                    return launch_wsl(distro, &session.cwd, None);
+                    return open_wsl(&app, &target, distro, &session.cwd, None);
                 }
             }
         }
@@ -195,12 +226,6 @@ pub fn new_chat(app: AppHandle, state: State<AppState>, id: Option<String>) -> R
             .or_else(|| activity.sessions.values().max_by_key(|s| s.updated_at));
         session.map(|s| folder(&s.cwd)).transpose()?
     };
-    let target = state
-        .preferences
-        .lock()
-        .map_err(|e| e.to_string())?
-        .open_target
-        .clone();
     if target == "terminal" {
         let project =
             project.ok_or("Open a Claude project first so Crawde knows where to start the chat")?;

@@ -10,7 +10,8 @@ interface Props {
 }
 
 export function Sprite({ animation, scale = 3, reducedMotion = false, facing = 1, onComplete }: Props) {
-  const [frame, setFrame] = useState(0);
+  const [shown, setShown] = useState({ animation, frame: 0 });
+  const frame = shown.animation === animation ? shown.frame : 0;
   const [systemReduced, setSystemReduced] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
   const spec = animations[animation];
   const effect = reducedMotion || systemReduced ? null : attackEffect(animation, frame);
@@ -23,7 +24,7 @@ export function Sprite({ animation, scale = 3, reducedMotion = false, facing = 1
   }, []);
 
   useEffect(() => {
-    setFrame(0);
+    setShown({ animation, frame: 0 });
     const oneShot = ['ability', 'attackA', 'attackB'].includes(animation);
     let tick = 0;
     const timer = window.setInterval(() => {
@@ -31,7 +32,7 @@ export function Sprite({ animation, scale = 3, reducedMotion = false, facing = 1
       if (oneShot && tick >= spec.frames) {
         window.clearInterval(timer);
         onComplete?.();
-      } else if (!reducedMotion && !systemReduced) setFrame(tick % spec.frames);
+      } else if (!reducedMotion && !systemReduced) setShown({ animation, frame: tick % spec.frames });
     }, 1000 / spec.fps);
     return () => window.clearInterval(timer);
   }, [animation, spec, reducedMotion, systemReduced, onComplete]);

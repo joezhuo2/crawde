@@ -29,6 +29,10 @@ export function attackEffect(animation: Animation, frame: number) {
   return effectFrame >= 0 && effectFrame < 3 ? { image: effect.image, frame: effectFrame } : null;
 }
 
+if (typeof Image !== 'undefined') {
+  for (const src of new Set([...Object.values(animations).map(a => a.image), attackAFx, attackBFx])) new Image().src = src;
+}
+
 export function framePosition(frame: number, columns: number, scale: number) {
   // Keep the shared 32×24 character region, excluding unused headroom.
   return `${-(frame % columns * 64 + 16) * scale}px ${-(Math.floor(frame / columns) * 64 + 28) * scale}px`;

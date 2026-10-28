@@ -29,6 +29,7 @@
 - [ ] Walking moves only the crab; pinned session cards stay anchored and the moving crab remains clickable.
 - [ ] Sleeping crab wakes after 1–4 minutes, walks and attacks 1–3 times over 15–45 seconds, then sleeps; wake-up walks pause 3–7 seconds and never overlap attacks; new activity and motion preferences cancel outings.
 - [ ] Walks pause during hover, dragging, keyboard focus, sleep, and reduced motion.
+- [ ] While Claude works, the crab attacks (A, B or C) every 8–14 seconds only when idle and not walking; walking never starts mid-attack.
 - [ ] Crab has no rectangular outline on click, focus, or drag; keyboard activation still works and other controls retain focus indicators.
 - [ ] Drop at 20%, 35%, 50%, 65%, and 80% screen height in both directions: crab stays at the drop point; expanding cards or changing direction does not move it. Restart restores that position.
 - [ ] Overflowing cards scroll within the available space and clipped controls do not intercept clicks.

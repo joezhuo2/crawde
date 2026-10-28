@@ -1,5 +1,5 @@
 import { Gear, X } from '@phosphor-icons/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import { Sprite } from './Sprite';
 import { ChatBubbles } from './ChatBubbles';
@@ -8,6 +8,7 @@ import { command, native } from './native';
 import { usePetPosition } from './usePetPosition';
 import { defaults } from './preferences';
 import { useBehavior } from './useBehavior';
+import { attackDelay } from './wander';
 
 export function App() {
   const activity = useActivity();
@@ -37,6 +38,20 @@ export function App() {
   const activatePet = () => { behavior.ability(); void act('open_claude'); };
   const walkMode = behavior.exploring ? 'exploring' : activity.sessions.some(session => session.status === 'working') ? 'working' : 'idle';
   const position = usePetPosition(hovered, preferences.roaming && !behavior.sleeping && !behavior.reduced && behavior.animation === 'idle', walkMode, `${activity.petX}-${activity.petY}-${preferences.scale}`, activatePet);
+  const busy = useRef(false);
+  busy.current = position.running || behavior.animation !== 'idle';
+  useEffect(() => {
+    if (walkMode !== 'working' || behavior.reduced) return;
+    let timer = 0;
+    const later = (ms: number) => { timer = window.setTimeout(fire, ms); };
+    const fire = () => {
+      if (busy.current) { later(250); return; }
+      behavior.attack();
+      later(attackDelay());
+    };
+    later(attackDelay());
+    return () => window.clearTimeout(timer);
+  }, [walkMode, behavior.reduced, behavior.attack]);
   const dismissChat = async (id: string) => {
     setDismissedNotice(null);
     const session = activity.sessions.find(s => s.id === id);

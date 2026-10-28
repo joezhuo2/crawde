@@ -16,6 +16,7 @@ export function useBehavior(sessions: Session[], claudeOpen: boolean, reduceMoti
   const approval = sessions.some(s => s.status === 'approval');
   const complete = useCallback(() => setAction(null), []);
   const ability = useCallback(() => setAction(clickAnimation()), []);
+  const attack = useCallback(() => setAction(current => current ?? randomAttack()), []);
 
   useEffect(() => {
     setExcursion(false);
@@ -39,5 +40,5 @@ export function useBehavior(sessions: Session[], claudeOpen: boolean, reduceMoti
     return () => clearInterval(timer);
   }, [approval, reduced]);
 
-  return { sleeping, exploring, reduced, animation: action ?? (sleeping ? 'sleep' : 'idle'), complete, ability };
+  return { sleeping, exploring, reduced, animation: action ?? (sleeping ? 'sleep' : 'idle'), complete, ability, attack };
 }

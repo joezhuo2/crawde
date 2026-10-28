@@ -2,8 +2,8 @@ import { expect, it } from 'vitest';
 import { nextWalk, walkDelay } from './wander';
 
 it('walks more frequently during work', () => {
-  expect(walkDelay('working', () => 0)).toBe(4_000);
-  expect(walkDelay('working', () => 1)).toBe(8_000);
+  expect(walkDelay('working', () => 0)).toBe(1_000);
+  expect(walkDelay('working', () => 1)).toBe(3_000);
   expect(walkDelay('idle', () => 0)).toBe(35_000);
 });
 

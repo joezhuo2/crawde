@@ -12,5 +12,5 @@ export type WalkMode = 'idle' | 'working' | 'exploring';
 
 export function walkDelay(mode: WalkMode, random = Math.random) {
   if (mode === 'exploring') return 3_000 + random() * 4_000;
-  return mode === 'working' ? 4_000 + random() * 4_000 : 35_000 + random() * 25_000;
+  return mode === 'working' ? 1_000 + random() * 2_000 : 35_000 + random() * 25_000;
 }

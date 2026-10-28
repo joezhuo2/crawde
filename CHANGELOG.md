@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.24 — 2026-10-27
+
+- Open WSL/Linux chats in the Claude app folder view (via \\wsl.localhost) when the open target is the app, instead of a terminal that closed immediately.
+- When the open target is a terminal, keep the WSL shell open if `claude` exits with an error so the message stays visible.
+
 ## 0.1.23 — 2026-10-27
 
 - Walk every 1–3 seconds while Claude is working (was 4–8 seconds); idle and wake-up cadences unchanged.

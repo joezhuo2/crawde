@@ -1,6 +1,6 @@
 [package]
 name = "crawde"
-version = "0.1.23"
+version = "0.1.24"
 license = "MIT"
 description = "A small crab companion for Claude Code"
 authors = ["Joe"]

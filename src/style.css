@@ -27,6 +27,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .chat-details { display: block; max-height: 0; padding-top: 0; opacity: 0; overflow: hidden; transition: max-height 560ms, padding-top 560ms, opacity 280ms; }
 .chat-activity, .chat-meta { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12px; line-height: 18px; }
 .chat-meta { font-size: 11px; }
+.chat-bubble.working .chat-activity, .chat-bubble.working .chat-meta { --shine: var(--ink); color: transparent; background-image: linear-gradient(90deg, var(--muted) 0%, var(--muted) 35%, var(--shine) 50%, var(--muted) 65%, var(--muted) 100%); background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; animation: subtitle-wave 2s linear infinite; }
+@keyframes subtitle-wave { 0% { background-position: 100% 0; } 60%, 100% { background-position: 0 0; } }
 .chat-list.expanded { height: calc(var(--count) * 92px + 20px + var(--footer-height)); }
 .expanded .bubbles { height: calc(var(--count) * 92px - 6px); }
 .bubbles { opacity: 1; transform: translateY(0); transition: height 560ms cubic-bezier(.22,.68,.2,1), opacity 240ms ease, transform 240ms ease; }

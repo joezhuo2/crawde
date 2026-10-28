@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.29 — 2026-10-27
+
+- While Claude is still working on a chat, its subtitle lines shimmer: a highlight sweeps left to right across the gray text about every 2 seconds. Disabled by reduced motion.
+
 ## 0.1.28 — 2026-10-27
 
 - Installing an update now closes Crawde, runs the installer silently, and reopens the new version automatically; no installer wizard to click through.

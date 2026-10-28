@@ -92,6 +92,8 @@ leave Crawde running and offer a retry; the About tab also shows update status.
 - **Completion:** a checkmark and sound; finished cards leave after thirty seconds.
 - **Dismiss:** each card has an ×. It stays hidden until that chat receives a new prompt.
 - **Open:** click a card to resume its conversation.
+- **Working:** while a chat is working, its subtitle lines shimmer with a soft
+  highlight about every 2 seconds; reduced motion turns this off.
 
 ## Settings and keybinds
 

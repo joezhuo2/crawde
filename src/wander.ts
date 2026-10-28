@@ -8,6 +8,10 @@ export function nextWalk(current: number, home: number, min: number, max: number
   return Math.abs(target - current) < 8 ? clamp(current - step) : target;
 }
 
+export function attackDelay(random = Math.random) {
+  return 8_000 + random() * 6_000;
+}
+
 export type WalkMode = 'idle' | 'working' | 'exploring';
 
 export function walkDelay(mode: WalkMode, random = Math.random) {

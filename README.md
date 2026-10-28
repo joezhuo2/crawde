@@ -70,6 +70,8 @@ leave Crawde running and offer a retry; the About tab also shows update status.
   placed spot; session cards stay anchored. While Claude works, it pauses 1–3 seconds
   between walks (35–60 seconds when idle). Hovering, dragging, keyboard focus,
   sleep, and reduced motion pause roaming; pinned cards can stay open during walks.
+  While Claude works, it also performs a random attack every 8–14 seconds when
+  not walking.
 - **Attack effects:** claw-tip sparks follow the supplied reference animation, scale
   and turn with the crab, and respect reduced motion.
 - **Sleep:** after ten minutes without activity, the crab slows down and little

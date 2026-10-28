@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.27 — 2026-10-27
+
+- While Claude is working, the crab performs a random attack (A, B or C) every 8–14 seconds when it is not walking; walks never start during an attack.
+
 ## 0.1.26 — 2026-10-27
 
 - Add attack C, with its two-strike effects, to every random attack pool: crab clicks, sleep outings, and approval prompts.

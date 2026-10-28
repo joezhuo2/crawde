@@ -51,8 +51,9 @@ Separate Linux machines, regular Claude Chat, and macOS are outside this version
 Crawde always checks GitHub releases on launch. The crab and tray right-click menus
 show one update action: **Up to date (vx.y.z)** with your installed version, or
 **Install latest update (vx.y.z)** with the available version. Clicking the latter
-downloads and verifies the installer, launches it, and closes Crawde. Clicking
-**Up to date** checks again. Checks never install an update automatically.
+downloads and verifies the installer, closes Crawde, installs silently, and
+reopens the new version. Clicking **Up to date** checks again. Checks never
+install an update automatically.
 
 While checking or downloading, the action shows progress and is disabled. Failures
 leave Crawde running and offer a retry; the About tab also shows update status.

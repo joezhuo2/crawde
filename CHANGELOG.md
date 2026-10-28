@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.28 — 2026-10-27
+
+- Installing an update now closes Crawde, runs the installer silently, and reopens the new version automatically; no installer wizard to click through.
+
 ## 0.1.27 — 2026-10-27
 
 - While Claude is working, the crab performs a random attack (A, B or C) every 8–14 seconds when it is not walking; walks never start during an attack.

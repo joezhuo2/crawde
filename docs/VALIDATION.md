@@ -4,7 +4,7 @@
 
 - Sleep outing timing, attack counts, return to sleep, and timer cancellation.
 - Equal-probability selection of all three click animations.
-- Attack FX use the reference strike frames (attack 1: 7–9, attack 2: 3–5), with no effects outside those frames.
+- Attack FX use the reference strike frames (attack 1: 7–9, attack 2: 3–5, attack 3: 5–7 and 8–10), with no effects outside those frames.
 - Sprite row/column addressing and nonempty frame counts.
 - Session completion expiry at 30 seconds and revival on a new prompt.
 - Subagent deduplication and approval-to-tool transitions.
@@ -24,7 +24,7 @@
 - [ ] CLI and Desktop Code events appear with correct titles and current tool/subagent details.
 - [ ] Hover expands, pin persists while leaving, three-chat pagination works.
 - [ ] Completion checkmark expires after 30 seconds; new prompts restore the chat.
-- [ ] Attack 1/2 sparks match CrabComplete.gif at both facing directions and all scales, without clipping; reduced motion hides FX.
+- [ ] Attack 1/2/3 sparks match CrabComplete.gif at both facing directions and all scales, without clipping; reduced motion hides FX.
 - [ ] Ability, run, idle, attacks, sleep, and reduced motion render correctly.
 - [ ] Walking moves only the crab; pinned session cards stay anchored and the moving crab remains clickable.
 - [ ] Sleeping crab wakes after 1–4 minutes, walks and attacks 1–3 times over 15–45 seconds, then sleeps; wake-up walks pause 3–7 seconds and never overlap attacks; new activity and motion preferences cancel outings.

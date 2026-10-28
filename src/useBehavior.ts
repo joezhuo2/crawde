@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { clickAnimation, type Animation } from './animation';
+import { clickAnimation, randomAttack, type Animation } from './animation';
 import type { Session } from './types';
 import { shouldSleep } from './sleep';
 import { scheduleSleepExcursions } from './sleepExcursion';
@@ -20,7 +20,7 @@ export function useBehavior(sessions: Session[], claudeOpen: boolean, reduceMoti
   useEffect(() => {
     setExcursion(false);
     if (!sleepDue || reduced || !roaming) return;
-    return scheduleSleepExcursions(setExcursion, () => setAction(current => current ?? (Math.random() < .5 ? 'attackA' : 'attackB')));
+    return scheduleSleepExcursions(setExcursion, () => setAction(current => current ?? randomAttack()));
   }, [sleepDue, reduced, roaming]);
 
   useEffect(() => {
@@ -33,7 +33,7 @@ export function useBehavior(sessions: Session[], claudeOpen: boolean, reduceMoti
 
   useEffect(() => {
     if (!approval || reduced) return;
-    const strike = () => setAction(current => current === 'ability' ? current : Math.random() > .5 ? 'attackA' : 'attackB');
+    const strike = () => setAction(current => current === 'ability' ? current : randomAttack());
     strike();
     const timer = window.setInterval(strike, 22_000);
     return () => clearInterval(timer);

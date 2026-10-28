@@ -95,7 +95,7 @@ export function Settings() {
         {tab === 'about' && <>
           <h2>Small crab. Big company.</h2>
           <p className="settings-note">Crawde {version} · Made for Claude Code on Windows.<br />Your activity stays on this computer.</p>
-          <p className="settings-note">Updates are checked on every launch. Install available updates from the right-click menu.</p>
+          <p className="settings-note">Updates are checked on every launch. Install available updates from the right-click menu; Crawde closes, installs silently, and reopens.</p>
           {activity.update && <p className="settings-note" role="status">{activity.update.message}</p>}
           <button type="button" className="text-button" onClick={() => void act('open_releases')}>View releases <ArrowSquareOut size={14} /></button>
         </>}

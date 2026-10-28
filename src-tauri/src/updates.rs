@@ -170,11 +170,43 @@ async fn install(app: &AppHandle) -> Result<(), String> {
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let path = dir.join(filename);
     std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
-    std::process::Command::new(&path)
-        .spawn()
-        .map_err(|e| format!("Could not launch installer: {e}"))?;
+    status(
+        app,
+        format!("Installing Crawde {version}…"),
+        Some(version.to_string()),
+        true,
+    );
+    launch_installer(&path)?;
     app.exit(0);
     Ok(())
+}
+
+fn installer_command_line(installer: &std::path::Path, executable: &std::path::Path) -> String {
+    format!(
+        "/C \"\"{}\" /S & start \"\" \"{}\"\"",
+        installer.display(),
+        executable.display()
+    )
+}
+
+#[cfg(windows)]
+fn launch_installer(installer: &std::path::Path) -> Result<(), String> {
+    use std::os::windows::process::CommandExt;
+    let executable = std::env::current_exe().map_err(|e| e.to_string())?;
+    std::process::Command::new("cmd")
+        .raw_arg(installer_command_line(installer, &executable))
+        .creation_flags(0x08000200) // CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP: outlive Crawde.
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("Could not launch installer: {e}"))
+}
+
+#[cfg(not(windows))]
+fn launch_installer(installer: &std::path::Path) -> Result<(), String> {
+    std::process::Command::new(installer)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("Could not launch installer: {e}"))
 }
 
 pub fn start(app: &AppHandle, install_latest: bool) {
@@ -280,6 +312,18 @@ mod tests {
         assert_eq!(
             menu_label(None, false),
             ("Checking for updates…".into(), false)
+        );
+    }
+
+    #[test]
+    fn installer_runs_silently_then_reopens_crawde() {
+        let line = installer_command_line(
+            std::path::Path::new(r"C:\Cache\setup.exe"),
+            std::path::Path::new(r"C:\Apps\Crawde\crawde.exe"),
+        );
+        assert_eq!(
+            line,
+            r#"/C ""C:\Cache\setup.exe" /S & start "" "C:\Apps\Crawde\crawde.exe"""#
         );
     }
 

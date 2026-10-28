@@ -24,7 +24,10 @@ fn valid_wsl(distro: &str, cwd: &str) -> Result<(), String> {
 }
 
 fn wsl_folder(distro: &str, cwd: &str) -> PathBuf {
-    PathBuf::from(format!(r"\\wsl.localhost\{distro}{}", cwd.replace('/', "\\")))
+    PathBuf::from(format!(
+        r"\\wsl.localhost\{distro}{}",
+        cwd.replace('/', "\\")
+    ))
 }
 
 fn open_wsl(

@@ -67,7 +67,7 @@ leave Crawde running and offer a retry; the About tab also shows update status.
   the top half and upward in the bottom half without moving the crab.
   Longer chat lists scroll within the available space.
 - **Little walks:** only the crab wanders left and right within 100 pixels of its
-  placed spot; session cards stay anchored. While Claude works, it pauses 4–8 seconds
+  placed spot; session cards stay anchored. While Claude works, it pauses 1–3 seconds
   between walks (35–60 seconds when idle). Hovering, dragging, keyboard focus,
   sleep, and reduced motion pause roaming; pinned cards can stay open during walks.
 - **Attack effects:** claw-tip sparks follow the supplied reference animation, scale

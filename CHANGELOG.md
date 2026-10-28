@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.23 — 2026-10-27
+
+- Walk every 1–3 seconds while Claude is working (was 4–8 seconds); idle and wake-up cadences unchanged.
+
 ## 0.1.21 — 2026-10-27
 
 - Walk with 3–7 second pauses during temporary wake-ups from sleep while Claude is inactive.

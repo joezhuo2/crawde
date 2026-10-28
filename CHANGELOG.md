@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.25 — 2026-10-27
+
+- Fix the crab flickering when clicked: preload every sprite sheet and effect, and never show a stale frame index when the animation switches.
+
 ## 0.1.24 — 2026-10-27
 
 - Open WSL/Linux chats in the Claude app folder view (via \\wsl.localhost) when the open target is the app, instead of a terminal that closed immediately.

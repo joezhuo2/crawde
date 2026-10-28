@@ -25,7 +25,7 @@ export function Sprite({ animation, scale = 3, reducedMotion = false, facing = 1
 
   useEffect(() => {
     setShown({ animation, frame: 0 });
-    const oneShot = ['ability', 'attackA', 'attackB'].includes(animation);
+    const oneShot = ['ability', 'attackA', 'attackB', 'attackC'].includes(animation);
     let tick = 0;
     const timer = window.setInterval(() => {
       tick++;
@@ -51,8 +51,8 @@ export function Sprite({ animation, scale = 3, reducedMotion = false, facing = 1
         left: -16 * scale, top: -28 * scale,
         width: 64 * scale, height: 64 * scale,
         backgroundImage: `url(${effect.image})`,
-        backgroundSize: `${3 * 64 * scale}px auto`,
-        backgroundPosition: `${-effect.frame * 64 * scale}px 0px`,
+        backgroundSize: `${effect.columns * 64 * scale}px auto`,
+        backgroundPosition: `${-(effect.frame % effect.columns) * 64 * scale}px ${-Math.floor(effect.frame / effect.columns) * 64 * scale}px`,
       }} />}
     </span>
     {animation === 'sleep' && <span className={`sleep-trail ${reducedMotion || systemReduced ? 'still' : ''}`} aria-hidden="true" style={{ left: facing > 0 ? '72%' : '24%', '--sleep-direction': facing } as React.CSSProperties}>

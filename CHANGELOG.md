@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.30 — 2026-10-30
+
+- Fix Windows chat cards silently failing to open their selected conversation in Claude Desktop: give the CLI handoff a hidden console and surface launch failures.
+- Preserve WSL's Desktop project folder view and terminal session resume behavior.
+- Add a demo GIF beneath the README introduction and screenshots of chat cards and settings, following tickr's layout.
+
 ## 0.1.29 — 2026-10-27
 
 - While Claude is still working on a chat, its subtitle lines shimmer: a highlight sweeps left to right across the gray text about every 2 seconds. Disabled by reduced motion.

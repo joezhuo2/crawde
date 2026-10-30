@@ -131,8 +131,47 @@ fn launch_terminal(project: &PathBuf, id: Option<&str>) -> Result<(), String> {
     Ok(())
 }
 
+// Claude's Desktop handoff requires a console: CREATE_NO_WINDOW or piped
+// stdout makes the CLI reject --desktop as non-interactive. Start-Process gives
+// it a real, hidden console. Values travel through environment variables rather
+// than being interpolated into PowerShell source.
+fn launch_desktop(executable: &PathBuf, project: &PathBuf, id: &str) -> Result<(), String> {
+    #[cfg(windows)]
+    let mut process = {
+        use std::os::windows::process::CommandExt;
+        let mut command = Command::new("powershell.exe");
+        command
+            .args(["-NoProfile", "-NonInteractive", "-Command",
+                "$ErrorActionPreference = 'Stop'; $p = Start-Process -FilePath $env:CRAWDE_CLI -WorkingDirectory $env:CRAWDE_PROJECT -ArgumentList @('--desktop', '--resume', $env:CRAWDE_SESSION) -WindowStyle Hidden -PassThru; $handle = $p.Handle; if (-not $p.WaitForExit(12000)) { $p.Kill(); exit 1 }; exit $p.ExitCode"])
+            .env("CRAWDE_CLI", executable)
+            .env("CRAWDE_PROJECT", project)
+            .env("CRAWDE_SESSION", id)
+            .creation_flags(0x08000000); // Hide the launcher; the CLI gets its own console.
+        command
+    };
+    #[cfg(not(windows))]
+    let mut process = {
+        let mut command = Command::new(executable);
+        command
+            .current_dir(project)
+            .args(["--desktop", "--resume", id]);
+        command
+    };
+    let status = process
+        .status()
+        .map_err(|e| format!("Could not open this conversation: {e}"))?;
+    if !status.success() {
+        return Err("Claude could not open this conversation in Desktop. Check that Claude Desktop is installed and the conversation is still available, or select Windows Terminal in Settings → Claude.".into());
+    }
+    Ok(())
+}
+
 #[tauri::command]
-pub fn open_chat(app: AppHandle, state: State<AppState>, id: String) -> Result<(), String> {
+pub async fn open_chat(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<(), String> {
     let session = state
         .activity
         .lock()
@@ -158,16 +197,14 @@ pub fn open_chat(app: AppHandle, state: State<AppState>, id: String) -> Result<(
     if target == "terminal" {
         launch_terminal(&project, Some(&id))?;
     } else {
-        let mut process = Command::new(claude_exe()?);
-        process
-            .current_dir(&project)
-            .args(["--desktop", "--resume", &id]);
-        #[cfg(windows)]
-        {
-            use std::os::windows::process::CommandExt;
-            process.creation_flags(0x08000000); // CREATE_NO_WINDOW: handoff opens Claude Desktop itself.
-        }
-        process.spawn().map_err(|e| e.to_string())?;
+        let executable = claude_exe()?;
+        let desktop_project = project.clone();
+        let desktop_id = id.clone();
+        tauri::async_runtime::spawn_blocking(move || {
+            launch_desktop(&executable, &desktop_project, &desktop_id)
+        })
+        .await
+        .map_err(|e| e.to_string())??;
     }
     let mut navigation = state.navigation.lock().map_err(|e| e.to_string())?;
     navigation.current_project = Some(project);
@@ -243,6 +280,42 @@ pub fn new_chat(app: AppHandle, state: State<AppState>, id: Option<String>) -> R
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(windows)]
+    #[test]
+    fn desktop_handoff_has_a_console_and_preserves_the_selected_chat() {
+        let root = std::env::temp_dir().join(format!(
+            "crawde navigation & spaces {}",
+            uuid::Uuid::new_v4()
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        let probe = root.join("probe.cmd");
+        std::fs::write(&probe, concat!(
+            "@echo off\r\n",
+            "echo %* > args.txt\r\n",
+            r#"powershell.exe -NoProfile -Command "[Console]::IsInputRedirected, [Console]::IsOutputRedirected | Set-Content console.txt""#, "\r\n",
+            "exit /b 0\r\n"
+        )).unwrap();
+        launch_desktop(&probe, &root, "selected-chat-123").unwrap();
+        assert_eq!(
+            std::fs::read_to_string(root.join("args.txt"))
+                .unwrap()
+                .trim(),
+            "--desktop --resume selected-chat-123"
+        );
+        assert_eq!(
+            std::fs::read_to_string(root.join("console.txt"))
+                .unwrap()
+                .trim(),
+            "False\nFalse".replace('\n', "\r\n")
+        );
+
+        std::fs::write(&probe, "@exit /b 1\r\n").unwrap();
+        assert!(launch_desktop(&probe, &root, "other-chat-456")
+            .unwrap_err()
+            .contains("could not open this conversation"));
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
     #[test]
     fn project_link_encodes_spaces_and_special_characters() {
         let path = PathBuf::from("C:\\Projects\\Crab & Co");

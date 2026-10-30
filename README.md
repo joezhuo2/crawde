@@ -14,6 +14,7 @@
   <a href="#download">Download</a> •
   <a href="#features">Features</a> •
   <a href="#settings-and-keybinds">Keybinds</a> •
+  <a href="#screenshots">Screenshots</a> •
   <a href="#claude-integration">Claude integration</a> •
   <a href="#data">Data</a> •
   <a href="#files">Files</a> •
@@ -27,6 +28,8 @@
 > your chats, see the current tool or running subagents, and catch approvals and
 > finished tasks. Click a chat to open it. The
 > crab takes little walks, reacts to clicks, and drifts off when things go quiet.
+
+<p align="center"><img src="assets/crawde-demo.gif" alt="Crawde demo: hover to expand active chats, browse conversations, and watch the animated crab" width="440"></p>
 
 ## Download
 
@@ -123,6 +126,16 @@ Claude Desktop or Windows Terminal.
 Interactive launches show the pet even if Claude is closed. Startup launches wait
 in the tray until Claude opens. Windows may put the tray icon in its overflow menu.
 
+## Screenshots
+
+These captures use Crawde's browser demo with sample conversations.
+
+| Active chats · light | Active chats · dark |
+| --- | --- |
+| ![Expanded chats with working, approval, and completed states](assets/screenshots/chats.png) | ![The same chat cards in dark mode](assets/screenshots/chats-dark.png) |
+
+<p align="center"><img src="assets/screenshots/settings.png" alt="Crawde Companion settings with visibility, shortcut, appearance, and pet size controls" width="660"></p>
+
 ## Claude integration
 
 **Settings → Claude** shows whether hooks are installed and when activity was last
@@ -145,9 +158,10 @@ WSL setup requires Python 3, `wslpath`, and enabled Windows executable interop.
 Every WSL event invokes the Windows Crawde executable, which forwards it to the
 Windows loopback receiver. This works with WSL NAT and mirrored networking;
 no firewall rule or network listener change is required. Hooks quietly return
-when Crawde is closed. Chat cards launch Claude in the
-original distro and project, using its interactive Bash environment. WSL chats
-always open in a terminal, including when the Desktop preference is selected.
+when Crawde is closed. With **Claude Desktop** selected, WSL chat cards open
+the original project's folder view through `\\wsl.localhost`. With **Windows
+Terminal** selected, they resume the selected session in its original distro
+and project, using its interactive Bash environment.
 
 The distro's `CLAUDE_CONFIG_DIR` is honored when exported to the setup process;
 otherwise setup uses the default user's `~/.claude`. Configurations belonging to
@@ -162,7 +176,9 @@ to the local receiver. Claude does not support HTTP handlers for this event. The
 other tracked events use HTTP hooks. The receiver binds `127.0.0.1:47631`, requires
 a local bearer token, rejects browser-origin requests, and limits payloads to 64 KiB.
 
-Desktop navigation uses `claude --desktop --resume <id>`. Terminal navigation
+Windows Desktop navigation uses `claude --desktop --resume <id>` in a hidden
+console, which the CLI requires for its interactive handoff. Crawde reports a
+failed handoff on the companion instead of silently ignoring it. Terminal navigation
 resumes in a new tab rather than focusing an already running tab. New Desktop chats
 use a folder-aware deep link, so Claude may ask you to confirm the project folder.
 

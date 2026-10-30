@@ -13,6 +13,7 @@
 - Separate walk cadences for active work, idle, and temporary wake-ups (3–7 seconds), bounded offsets around the placed position, and turning back at window edges.
 - WAV structure and volume scaling.
 - Folder URL encoding and transcript title parsing.
+- Windows Desktop handoff receives the selected session ID and project directory in a hidden, interactive console; nonzero exits report an error.
 - Wake-up from tool activity without process detection, continued activity after an old prompt, and sleep after inactivity.
 - Migration from unsupported HTTP startup hooks to command forwarding without replacing unrelated handlers.
 - Production bundles contain all seven sprite sheets as local assets and no inline images blocked by the native Content Security Policy. This check runs during every build, including release packaging.

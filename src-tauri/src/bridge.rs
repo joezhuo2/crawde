@@ -35,7 +35,8 @@ pub fn forward_hook() -> Result<(), String> {
             return Err("Hook payload is too large".into());
         }
     }
-    let path = PathBuf::from(std::env::var_os("APPDATA").ok_or("APPDATA is unavailable")?)
+    let path = crate::platform::app_data_dir()
+        .ok_or("Application data directory is unavailable")?
         .join("com.joezhuo.crawde/bridge-token");
     let token = fs::read_to_string(path).map_err(|e| e.to_string())?;
     if !token.chars().all(|c| c.is_ascii_hexdigit() || c == '-') {
@@ -92,9 +93,7 @@ pub fn now() -> u64 {
 pub fn config_dir() -> PathBuf {
     std::env::var_os("CLAUDE_CONFIG_DIR")
         .map(PathBuf::from)
-        .unwrap_or_else(|| {
-            PathBuf::from(std::env::var_os("USERPROFILE").unwrap_or_default()).join(".claude")
-        })
+        .unwrap_or_else(|| crate::platform::home_dir().join(".claude"))
 }
 
 pub fn token(app: &AppHandle) -> Result<String, String> {
@@ -105,7 +104,12 @@ pub fn token(app: &AppHandle) -> Result<String, String> {
         return fs::read_to_string(path).map_err(|e| e.to_string());
     }
     let token = uuid::Uuid::new_v4().to_string();
-    fs::write(path, &token).map_err(|e| e.to_string())?;
+    fs::write(&path, &token).map_err(|e| e.to_string())?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).map_err(|e| e.to_string())?;
+    }
     Ok(token)
 }
 
@@ -265,7 +269,14 @@ pub fn configure_hooks(app: AppHandle, install: bool) -> Result<(), String> {
     )
     .map_err(|e| e.to_string())?;
     fs::rename(staging, path).map_err(|e| e.to_string())?;
-    crate::wsl::configure(&executable.to_string_lossy(), install, EVENTS)
+    #[cfg(windows)]
+    {
+        crate::wsl::configure(&executable.to_string_lossy(), install, EVENTS)
+    }
+    #[cfg(not(windows))]
+    {
+        Ok(())
+    }
 }
 
 pub fn installed() -> bool {

@@ -610,7 +610,7 @@ dependencies = [
 
 [[package]]
 name = "crawde"
-version = "0.1.32"
+version = "0.1.33"
 dependencies = [
  "reqwest 0.12.28",
  "semver",

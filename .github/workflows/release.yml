@@ -72,5 +72,58 @@ jobs:
             } else {
               gh release create $env:RELEASE_TAG $crawdeInstaller.FullName $crawdeChecksum --verify-tag --title "Crawde $($env:RELEASE_TAG)" --generate-notes
             }
+            if ($LASTEXITCODE -ne 0) {
+              gh release upload $env:RELEASE_TAG $crawdeInstaller.FullName $crawdeChecksum --clobber
+            }
           }
           if ($LASTEXITCODE -ne 0) { throw 'GitHub release publication failed.' }
+
+  macos:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Verify tagged versions
+        run: |
+          crawde_version=$(node -p "require('./package.json').version")
+          crawde_tauri_version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          crawde_cargo_version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' src-tauri/Cargo.toml | head -n 1)
+          if [ "$RELEASE_TAG" != "v$crawde_version" ] || [ "$crawde_version" != "$crawde_tauri_version" ] || [ "$crawde_version" != "$crawde_cargo_version" ]; then
+            echo 'Tag and application versions must match.'
+            exit 1
+          fi
+      - run: npm ci
+      - run: npm run check
+      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked
+      - run: npm run tauri build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Crawde-${{ env.RELEASE_TAG }}-macOS
+          path: src-tauri/target/release/bundle/dmg/*.dmg
+      - name: Publish disk image
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -u
+          dmg=$(ls src-tauri/target/release/bundle/dmg/*.dmg | head -n 1)
+          if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$dmg" --clobber
+          else
+            notes="docs/releases/$RELEASE_TAG.md"
+            args=(--verify-tag --title "Crawde $RELEASE_TAG" --generate-notes)
+            if [ -f "$notes" ]; then args+=(--notes-file "$notes"); fi
+            gh release create "$RELEASE_TAG" "$dmg" "${args[@]}" || gh release upload "$RELEASE_TAG" "$dmg" --clobber
+          fi

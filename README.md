@@ -33,11 +33,20 @@
 
 ## Download
 
-Get the latest Windows x64 installer from [Releases](https://github.com/joezhuo2/crawde/releases/latest):
+Get the latest installer from [Releases](https://github.com/joezhuo2/crawde/releases/latest):
 
 - **Windows:** `Crawde_x.y.z_x64-setup.exe`.
+- **macOS:** `Crawde_x.y.z_<arch>.dmg` (best-effort support).
 - A `.sha256` checksum is included with each release.
 - Requires WebView2 and the [native Claude Code CLI](https://code.claude.com/docs/en/setup).
+
+### macOS
+
+Open the `.dmg` and drag Crawde to Applications. The app is not notarized, so on
+first launch right-click it and choose **Open**, or run
+`xattr -cr /Applications/Crawde.app` once. Crawde runs as a menu bar app with no
+Dock icon. Conversations open in Terminal, and updates open the GitHub release page
+for a manual download. macOS support is best-effort; WSL features are Windows-only.
 
 ### First launch
 
@@ -47,7 +56,7 @@ Get the latest Windows x64 installer from [Releases](https://github.com/joezhuo2
 
 Supports Claude Code in your terminal and the **Code tab** in Claude Desktop.
 Ubuntu/Linux Claude Code sessions in WSL on the same Windows PC are supported.
-Separate Linux machines, regular Claude Chat, and macOS are outside this version's scope.
+Separate Linux machines and regular Claude Chat are outside this version's scope.
 
 ### Updates
 

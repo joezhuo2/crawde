@@ -78,6 +78,7 @@ fn launch_wsl(distro: &str, cwd: &str, id: Option<&str>) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(windows)]
 fn claude_exe() -> Result<PathBuf, String> {
     let home = std::env::var_os("USERPROFILE")
         .map(PathBuf::from)
@@ -95,6 +96,32 @@ fn claude_exe() -> Result<PathBuf, String> {
     Err("Install the native Claude Code CLI to open conversations: https://code.claude.com/docs/en/setup".into())
 }
 
+#[cfg(not(windows))]
+fn claude_exe() -> Result<PathBuf, String> {
+    let home = crate::platform::home_dir();
+    let mut candidates = vec![
+        home.join(".local/bin/claude"),
+        home.join(".claude/local/claude"),
+        home.join(".npm-global/bin/claude"),
+        home.join(".bun/bin/claude"),
+        PathBuf::from("/opt/homebrew/bin/claude"),
+        PathBuf::from("/usr/local/bin/claude"),
+    ];
+    candidates.extend(
+        std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default())
+            .map(|dir| dir.join("claude")),
+    );
+    candidates
+        .into_iter()
+        .find(|path| path.is_file())
+        .ok_or_else(|| "Install the native Claude Code CLI to open conversations: https://code.claude.com/docs/en/setup".into())
+}
+
+#[cfg(windows)]
+const TERMINAL_NAME: &str = "Windows Terminal";
+#[cfg(not(windows))]
+const TERMINAL_NAME: &str = "Terminal";
+
 fn folder(cwd: &str) -> Result<PathBuf, String> {
     let path = PathBuf::from(cwd);
     if !path.is_absolute() || !path.is_dir() {
@@ -103,6 +130,48 @@ fn folder(cwd: &str) -> Result<PathBuf, String> {
     Ok(path)
 }
 
+#[cfg_attr(windows, allow(dead_code))]
+fn terminal_script(project: &str, executable: &str, id: Option<&str>) -> String {
+    use crate::platform::shell_quote;
+    let mut command = format!("exec {}", shell_quote(executable));
+    if let Some(id) = id {
+        command.push_str(&format!(" --resume {}", shell_quote(id)));
+    }
+    format!(
+        "#!/bin/sh\nrm -f -- \"$0\"\ncd {} || exit 1\n{command}\n",
+        shell_quote(project)
+    )
+}
+
+#[cfg(not(windows))]
+fn launch_terminal(project: &PathBuf, id: Option<&str>) -> Result<(), String> {
+    use std::os::unix::fs::PermissionsExt;
+    let executable = claude_exe()?;
+    let script = std::env::temp_dir().join(format!("crawde-{}.command", uuid::Uuid::new_v4()));
+    std::fs::write(
+        &script,
+        terminal_script(
+            &project.to_string_lossy(),
+            &executable.to_string_lossy(),
+            id,
+        ),
+    )
+    .map_err(|e| e.to_string())?;
+    std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o700))
+        .map_err(|e| e.to_string())?;
+    let opened = Command::new("open")
+        .args(["-a", "Terminal"])
+        .arg(&script)
+        .status()
+        .is_ok_and(|status| status.success());
+    if !opened {
+        let _ = std::fs::remove_file(&script);
+        return Err("Could not open Terminal".into());
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
 fn launch_terminal(project: &PathBuf, id: Option<&str>) -> Result<(), String> {
     let executable = claude_exe()?;
     let mut terminal = Command::new("wt.exe");
@@ -151,19 +220,54 @@ fn launch_desktop(executable: &PathBuf, project: &PathBuf, id: &str) -> Result<(
     };
     #[cfg(not(windows))]
     let mut process = {
+        #[cfg(target_os = "macos")]
+        let mut command = {
+            let mut command = Command::new("script");
+            command.args(["-q", "/dev/null"]).arg(executable);
+            command
+        };
+        #[cfg(not(target_os = "macos"))]
         let mut command = Command::new(executable);
         command
             .current_dir(project)
-            .args(["--desktop", "--resume", id]);
+            .args(["--desktop", "--resume", id])
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null());
         command
     };
-    let status = process
-        .status()
-        .map_err(|e| format!("Could not open this conversation: {e}"))?;
+    #[cfg(windows)]
+    let status = process.status();
+    #[cfg(not(windows))]
+    let status = status_within(&mut process, std::time::Duration::from_secs(12));
+    let status = status.map_err(|e| format!("Could not open this conversation: {e}"))?;
     if !status.success() {
-        return Err("Claude could not open this conversation in Desktop. Check that Claude Desktop is installed and the conversation is still available, or select Windows Terminal in Settings → Claude.".into());
+        return Err(format!("Claude could not open this conversation in Desktop. Check that Claude Desktop is installed and the conversation is still available, or select {TERMINAL_NAME} in Settings → Claude."));
     }
     Ok(())
+}
+
+#[cfg(not(windows))]
+fn status_within(
+    process: &mut Command,
+    limit: std::time::Duration,
+) -> std::io::Result<std::process::ExitStatus> {
+    let mut child = process.spawn()?;
+    let deadline = std::time::Instant::now() + limit;
+    loop {
+        if let Some(status) = child.try_wait()? {
+            return Ok(status);
+        }
+        if std::time::Instant::now() >= deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::TimedOut,
+                "Claude did not finish within 12 seconds",
+            ));
+        }
+        std::thread::sleep(std::time::Duration::from_millis(25));
+    }
 }
 
 #[tauri::command]
@@ -310,6 +414,52 @@ mod tests {
         );
 
         std::fs::write(&probe, "@exit /b 1\r\n").unwrap();
+        assert!(launch_desktop(&probe, &root, "other-chat-456")
+            .unwrap_err()
+            .contains("could not open this conversation"));
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn terminal_script_quotes_paths_and_removes_itself() {
+        let script = terminal_script(
+            "/Users/me/Crab & 'Co'",
+            "/Users/me/.local/bin/claude",
+            Some("abc-123"),
+        );
+        assert_eq!(
+            script,
+            "#!/bin/sh\nrm -f -- \"$0\"\ncd '/Users/me/Crab & '\\''Co'\\''' || exit 1\nexec '/Users/me/.local/bin/claude' --resume 'abc-123'\n"
+        );
+        assert!(!terminal_script("/tmp", "/bin/claude", None).contains("--resume"));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn desktop_handoff_has_a_terminal_and_preserves_the_selected_chat() {
+        use std::os::unix::fs::PermissionsExt;
+        let root = std::env::temp_dir().join(format!(
+            "crawde navigation & spaces {}",
+            uuid::Uuid::new_v4()
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        let probe = root.join("probe.sh");
+        std::fs::write(
+            &probe,
+            "#!/bin/sh\necho \"$@\" > args.txt\nif [ -t 0 ] && [ -t 1 ]; then echo tty > tty.txt; fi\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(&probe, std::fs::Permissions::from_mode(0o755)).unwrap();
+        launch_desktop(&probe, &root, "selected-chat-123").unwrap();
+        assert_eq!(
+            std::fs::read_to_string(root.join("args.txt"))
+                .unwrap()
+                .trim(),
+            "--desktop --resume selected-chat-123"
+        );
+        assert!(root.join("tty.txt").is_file());
+
+        std::fs::write(&probe, "#!/bin/sh\nexit 1\n").unwrap();
         assert!(launch_desktop(&probe, &root, "other-chat-456")
             .unwrap_err()
             .contains("could not open this conversation"));

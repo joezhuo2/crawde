@@ -56,6 +56,10 @@ pub fn set_pet_visible(app: &AppHandle, visible: bool) -> Result<(), String> {
         crate::position::restore(app)?;
         window.unminimize().map_err(|e| e.to_string())?;
         window.set_always_on_top(true).map_err(|e| e.to_string())?;
+        #[cfg(target_os = "macos")]
+        window
+            .set_visible_on_all_workspaces(true)
+            .map_err(|e| e.to_string())?;
         window.show().map_err(|e| e.to_string())
     } else {
         window.hide().map_err(|e| e.to_string())

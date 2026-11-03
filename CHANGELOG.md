@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.33 — 2026-11-02
+
+- Add best-effort macOS support: no Dock icon, Terminal handoff for sessions, Application Support paths, and a .dmg built and attached to each release by CI. Untested on real macOS hardware.
+- Updates on macOS open the GitHub release page instead of installing in-app.
+
 ## 0.1.32 — 2026-11-02
 
 - Expand the running-subagent line on a chat card to see each subagent's name, task, and current state.

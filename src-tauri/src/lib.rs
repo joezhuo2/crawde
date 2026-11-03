@@ -3,6 +3,7 @@ mod bridge;
 mod lifecycle;
 mod navigation;
 mod notifications;
+mod platform;
 mod position;
 mod preferences;
 mod titles;
@@ -127,6 +128,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(AppState::default())
         .setup(|app| {
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             if let Err(error) = bridge::start(app.handle().clone()) {
                 *app.state::<AppState>().bridge_error.lock().unwrap() = Some(error);
             }

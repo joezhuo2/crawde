@@ -1,9 +1,11 @@
+#[cfg(windows)]
 use std::{
     io::Write,
     process::{Command, Stdio},
     time::{Duration, Instant},
 };
 
+#[cfg(windows)]
 pub fn quiet_command() -> Command {
     let mut command = Command::new("wsl.exe");
     #[cfg(windows)]
@@ -14,6 +16,7 @@ pub fn quiet_command() -> Command {
     command
 }
 
+#[cfg(windows)]
 fn output(mut command: Command, input: Option<&[u8]>) -> Result<Vec<u8>, String> {
     let mut child = command
         .stdin(Stdio::piped())
@@ -52,6 +55,7 @@ fn output(mut command: Command, input: Option<&[u8]>) -> Result<Vec<u8>, String>
     Ok(result.stdout)
 }
 
+#[cfg(windows)]
 pub fn configure(executable: &str, install: bool, events: &[&str]) -> Result<(), String> {
     let mut list = quiet_command();
     list.args(["--list", "--quiet"]);

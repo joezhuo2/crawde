@@ -105,7 +105,15 @@ fn play(kind: &str, preferences: &Preferences) {
                 SND_MEMORY | SND_NODEFAULT | SND_SYNC,
             );
         }
-        #[cfg(not(windows))]
+        #[cfg(target_os = "macos")]
+        {
+            let path = std::env::temp_dir().join(format!("crawde-{}.wav", uuid::Uuid::new_v4()));
+            if std::fs::write(&path, &bytes).is_ok() {
+                let _ = std::process::Command::new("afplay").arg(&path).status();
+                let _ = std::fs::remove_file(&path);
+            }
+        }
+        #[cfg(not(any(windows, target_os = "macos")))]
         let _ = bytes;
     });
 }

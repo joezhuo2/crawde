@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+#[cfg(windows)]
 use sha2::{Digest, Sha256};
 use std::sync::atomic::Ordering;
 use tauri::{AppHandle, Manager};
@@ -6,6 +7,11 @@ use tauri_plugin_opener::OpenerExt;
 
 const RELEASES: &str = "https://github.com/joezhuo2/crawde/releases";
 const API: &str = "https://api.github.com/repos/joezhuo2/crawde/releases/latest";
+
+#[cfg(windows)]
+const INSTALL_VERB: &str = "Install";
+#[cfg(not(windows))]
+const INSTALL_VERB: &str = "Download";
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -17,6 +23,7 @@ pub struct UpdateInfo {
     pub message: String,
 }
 
+#[cfg(windows)]
 #[derive(Deserialize)]
 struct Asset {
     name: String,
@@ -26,6 +33,7 @@ struct Asset {
 #[derive(Deserialize)]
 struct Release {
     tag_name: String,
+    #[cfg(windows)]
     #[serde(default)]
     assets: Vec<Asset>,
 }
@@ -99,6 +107,7 @@ pub async fn check_updates(app: AppHandle) -> Result<UpdateInfo, String> {
     Ok(status(&app, message, version, true))
 }
 
+#[cfg(windows)]
 fn asset_url<'a>(release: &'a Release, name: &str) -> Result<&'a str, String> {
     let asset = release
         .assets
@@ -112,6 +121,7 @@ fn asset_url<'a>(release: &'a Release, name: &str) -> Result<&'a str, String> {
     Ok(&asset.browser_download_url)
 }
 
+#[cfg(windows)]
 fn verify(bytes: &[u8], checksum: &str, filename: &str) -> Result<(), String> {
     let fields: Vec<_> = checksum.split_whitespace().collect();
     let hash = format!("{:x}", Sha256::digest(bytes));
@@ -124,6 +134,28 @@ fn verify(bytes: &[u8], checksum: &str, filename: &str) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(not(windows))]
+async fn install(app: &AppHandle) -> Result<(), String> {
+    let release = latest(&client()?)
+        .await?
+        .ok_or("No public release is available yet.")?;
+    let Some(version) = newer(&release)? else {
+        status(app, "You're up to date.".into(), None, true);
+        return Ok(());
+    };
+    app.opener()
+        .open_url(format!("{RELEASES}/tag/{}", release.tag_name), None::<&str>)
+        .map_err(|e| e.to_string())?;
+    status(
+        app,
+        format!("Crawde {version} is available."),
+        Some(version.to_string()),
+        true,
+    );
+    Ok(())
+}
+
+#[cfg(windows)]
 async fn install(app: &AppHandle) -> Result<(), String> {
     let client = client()?;
     let release = latest(&client)
@@ -181,6 +213,7 @@ async fn install(app: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(windows)]
 fn installer_command_line(installer: &std::path::Path, executable: &std::path::Path) -> String {
     format!(
         "/C \"\"{}\" /S & start \"\" \"{}\"\"",
@@ -196,14 +229,6 @@ fn launch_installer(installer: &std::path::Path) -> Result<(), String> {
     std::process::Command::new("cmd")
         .raw_arg(installer_command_line(installer, &executable))
         .creation_flags(0x08000200) // CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP: outlive Crawde.
-        .spawn()
-        .map(|_| ())
-        .map_err(|e| format!("Could not launch installer: {e}"))
-}
-
-#[cfg(not(windows))]
-fn launch_installer(installer: &std::path::Path) -> Result<(), String> {
-    std::process::Command::new(installer)
         .spawn()
         .map(|_| ())
         .map_err(|e| format!("Could not launch installer: {e}"))
@@ -250,7 +275,7 @@ pub fn menu_label(info: Option<&UpdateInfo>, busy: bool) -> (String, bool) {
     match info {
         Some(info) if info.check_succeeded && info.available => {
             if let Some(version) = &info.version {
-                return (format!("Install latest update (v{version})"), true);
+                return (format!("{INSTALL_VERB} latest update (v{version})"), true);
             }
             ("Update check failed — retry".into(), true)
         }
@@ -300,7 +325,7 @@ mod tests {
         info.version = Some("9.0.0".into());
         assert_eq!(
             menu_label(Some(&info), false),
-            ("Install latest update (v9.0.0)".into(), true)
+            (format!("{INSTALL_VERB} latest update (v9.0.0)"), true)
         );
         info.message = "Downloading Crawde 9.0.0…".into();
         assert_eq!(menu_label(Some(&info), true), (info.message.clone(), false));
@@ -315,6 +340,7 @@ mod tests {
         );
     }
 
+    #[cfg(windows)]
     #[test]
     fn installer_runs_silently_then_reopens_crawde() {
         let line = installer_command_line(
@@ -327,6 +353,7 @@ mod tests {
         );
     }
 
+    #[cfg(windows)]
     #[test]
     fn checksum_requires_matching_content_and_filename() {
         let checksum = format!("{:x}  setup.exe\n", Sha256::digest(b"installer"));
@@ -335,6 +362,7 @@ mod tests {
         assert!(verify(b"installer", &checksum, "other.exe").is_err());
         assert!(verify(b"installer", "", "setup.exe").is_err());
     }
+    #[cfg(windows)]
     #[test]
     fn download_requires_exact_release_asset() {
         let release = Release {

@@ -10,6 +10,9 @@ export interface Session {
   updatedAt: number;
   lastPromptAt: number;
   finishedAt: number | null;
+  workingMs: number;
+  waitingMs: number;
+  statusSince: number;
 }
 
 export interface Snapshot {

@@ -11,7 +11,7 @@ function demo(): Session[] {
     { id: 'preview-2', project: 'Crawde', title: 'Polish the settings', status: 'approval', activity: '✋ Waiting for your approval', tool: 'Bash', agents: [] },
     { id: 'preview-3', project: 'Garden', title: 'Tidy up the stylesheet', status: 'done', activity: '✓ Finished', tool: '', agents: [] },
     { id: 'preview-4', project: 'Garden', title: 'Review the next change', status: 'working', activity: '✏️ Editing the layout', tool: 'Edit', agents: [] },
-  ].map(s => ({ ...s, cwd: 'C:\\Projects\\' + s.project, updatedAt: Date.now(), lastPromptAt: Date.now(), finishedAt: null }) as Session);
+  ].map(s => ({ ...s, cwd: 'C:\\Projects\\' + s.project, updatedAt: Date.now(), lastPromptAt: Date.now(), finishedAt: null, workingMs: 134_000, waitingMs: 18_000, statusSince: Date.now() }) as Session);
 }
 
 export function useActivity() {

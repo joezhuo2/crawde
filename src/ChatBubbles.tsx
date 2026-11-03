@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowRight, Check, PushPin, PushPinSlash, X } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 import type { Session } from './types';
+import { sessionTiming } from './sessionTiming';
 
 interface Props {
   sessions: Session[];
@@ -19,6 +20,13 @@ export function ChatBubbles({ sessions, expanded, pinned, onPin, onOpen, onDismi
   const pageCount = useRef(pages);
   pageCount.current = pages;
   useEffect(() => { setPage(p => Math.min(p, pages - 1)); }, [pages]);
+  const ticking = expanded && sessions.some(s => s.status === 'working' || s.status === 'approval');
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!ticking) return;
+    const timer = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(timer);
+  }, [ticking]);
   useEffect(() => () => { if (pageTimer.current) clearTimeout(pageTimer.current); }, []);
   useEffect(() => {
     if (phase !== 'in') return;
@@ -52,6 +60,7 @@ export function ChatBubbles({ sessions, expanded, pinned, onPin, onOpen, onDismi
           <span className="chat-meta">{session.agents.length
             ? `🤝 ${session.agents.length} subagent${session.agents.length === 1 ? '' : 's'} running`
             : session.tool ? `🛠️ ${session.tool}` : session.status === 'done' ? '🌿 All wrapped up' : '💭 Working on your request'}</span>
+          <span className="chat-meta">{sessionTiming(session, Date.now())}</span>
         </span>
         </button>
         <button className="icon-button chat-close" aria-label={`Dismiss ${session.title}`} onClick={() => onDismiss(session.id)}><X size={12} weight="bold" /></button>

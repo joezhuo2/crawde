@@ -38,6 +38,25 @@ pub struct Session {
     pub updated_at: u64,
     pub last_prompt_at: u64,
     pub finished_at: Option<u64>,
+    pub working_ms: u64,
+    pub waiting_ms: u64,
+    pub status_since: u64,
+}
+
+impl Session {
+    fn set_status(&mut self, status: &str, now: u64) {
+        if self.status == status {
+            return;
+        }
+        let elapsed = now.saturating_sub(self.status_since);
+        match self.status.as_str() {
+            "working" => self.working_ms += elapsed,
+            "approval" => self.waiting_ms += elapsed,
+            _ => {}
+        }
+        self.status = status.into();
+        self.status_since = now;
+    }
 }
 
 #[derive(Default)]
@@ -97,7 +116,7 @@ impl Activity {
         }
         if event.hook_event_name == "SessionEnd" {
             if let Some(session) = self.sessions.get_mut(&id) {
-                session.status = "done".into();
+                session.set_status("done", now);
                 session.activity = "✓ Session ended".into();
                 session.finished_at = Some(now);
                 session.agents.clear();
@@ -134,6 +153,9 @@ impl Activity {
             updated_at: now,
             last_prompt_at: now,
             finished_at: None,
+            working_ms: 0,
+            waiting_ms: 0,
+            status_since: now,
         });
         session.updated_at = now;
         match event.hook_event_name.as_str() {
@@ -145,14 +167,14 @@ impl Activity {
                     }
                 }
                 session.last_prompt_at = now;
-                session.status = "working".into();
+                session.set_status("working", now);
                 session.finished_at = None;
                 session.activity = "💭 Thinking".into();
                 session.tool.clear();
                 session.agents.clear();
             }
             "PreToolUse" | "PostToolUse" => {
-                session.status = "working".into();
+                session.set_status("working", now);
                 session.finished_at = None;
                 session.tool = short(&event.tool_name, 80);
                 let label = match event.tool_name.as_str() {
@@ -175,12 +197,12 @@ impl Activity {
                 };
             }
             "PermissionRequest" | "Elicitation" => {
-                session.status = "approval".into();
+                session.set_status("approval", now);
                 session.activity = "✋ Waiting for your approval".into();
                 session.tool = short(&event.tool_name, 80);
             }
             "Notification" if event.notification_type == "permission_prompt" => {
-                session.status = "approval".into();
+                session.set_status("approval", now);
                 session.activity = "✋ Waiting for your approval".into();
             }
             "SubagentStart" => {
@@ -190,11 +212,11 @@ impl Activity {
                 session.agents.remove(&event.agent_id);
             }
             "PostToolUseFailure" | "StopFailure" => {
-                session.status = "error".into();
+                session.set_status("error", now);
                 session.activity = "⚠️ Something needs attention".into();
             }
             "Stop" => {
-                session.status = "done".into();
+                session.set_status("done", now);
                 session.activity = "✓ Finished".into();
                 session.finished_at = Some(now);
                 session.agents.clear();
@@ -322,5 +344,50 @@ mod tests {
         assert_eq!(state.visible(3)[0].status, "approval");
         state.apply(event("PostToolUse"), 4).unwrap();
         assert_eq!(state.visible(4)[0].status, "working");
+    }
+    #[test]
+    fn working_and_waiting_time_accumulate_across_status_changes() {
+        let mut state = Activity::default();
+        state.apply(event("UserPromptSubmit"), 1_000).unwrap();
+        state.apply(event("PermissionRequest"), 4_000).unwrap();
+        state.apply(event("PostToolUse"), 9_000).unwrap();
+        state.apply(event("Stop"), 12_000).unwrap();
+        let session = &state.visible(12_000)[0];
+        assert_eq!(session.working_ms, 6_000);
+        assert_eq!(session.waiting_ms, 5_000);
+        assert_eq!(session.status_since, 12_000);
+        assert_eq!(session.updated_at, 12_000);
+    }
+    #[test]
+    fn repeated_events_in_one_status_keep_the_running_segment() {
+        let mut state = Activity::default();
+        state.apply(event("UserPromptSubmit"), 100).unwrap();
+        state.apply(event("PreToolUse"), 400).unwrap();
+        state.apply(event("PostToolUse"), 700).unwrap();
+        let session = &state.visible(700)[0];
+        assert_eq!(session.working_ms, 0);
+        assert_eq!(session.status_since, 100);
+        assert_eq!(session.updated_at, 700);
+    }
+    #[test]
+    fn finished_time_is_not_counted_and_a_new_prompt_resumes_totals() {
+        let mut state = Activity::default();
+        state.apply(event("UserPromptSubmit"), 0).unwrap();
+        state.apply(event("Stop"), 2_000).unwrap();
+        state.apply(event("UserPromptSubmit"), 10_000).unwrap();
+        state.apply(event("SessionEnd"), 13_000).unwrap();
+        let session = &state.visible(13_000)[0];
+        assert_eq!(session.working_ms, 5_000);
+        assert_eq!(session.waiting_ms, 0);
+    }
+    #[test]
+    fn session_serializes_timing_fields_in_camel_case() {
+        let mut state = Activity::default();
+        state.apply(event("UserPromptSubmit"), 5).unwrap();
+        let value = serde_json::to_value(&state.visible(5)[0]).unwrap();
+        assert_eq!(value["workingMs"], 0);
+        assert_eq!(value["waitingMs"], 0);
+        assert_eq!(value["statusSince"], 5);
+        assert_eq!(value["updatedAt"], 5);
     }
 }

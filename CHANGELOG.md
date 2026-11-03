@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.31 — 2026-11-02
+
+- Chat cards show session timing: elapsed working time, time spent waiting for approval, and how long ago activity last arrived.
+
 ## 0.1.30 — 2026-10-30
 
 - Fix Windows chat cards silently failing to open their selected conversation in Claude Desktop: give the CLI handoff a hidden console and surface launch failures.

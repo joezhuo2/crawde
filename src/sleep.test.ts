@@ -3,7 +3,7 @@ import { shouldSleep, SLEEP_AFTER_MS } from './sleep';
 import type { Session } from './types';
 
 const now = 2_000_000;
-const session: Session = { id: 's', cwd: 'C:\\work', project: 'work', title: 'A task', status: 'working', activity: '📚 Reading', tool: 'Read', agents: [], updatedAt: now, lastPromptAt: 1, finishedAt: null };
+const session: Session = { id: 's', cwd: 'C:\\work', project: 'work', title: 'A task', status: 'working', activity: '📚 Reading', tool: 'Read', agents: [], updatedAt: now, lastPromptAt: 1, finishedAt: null, workingMs: 0, waitingMs: 0, statusSince: now };
 
 describe('sleep state', () => {
   it('wakes from tool activity even if process detection misses Claude', () => {

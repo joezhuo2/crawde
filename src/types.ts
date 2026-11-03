@@ -1,3 +1,11 @@
+export interface Subagent {
+  id: string;
+  name: string;
+  task: string;
+  state: 'starting' | 'working' | 'thinking' | 'approval';
+  tool: string;
+}
+
 export interface Session {
   id: string;
   cwd: string;
@@ -6,7 +14,7 @@ export interface Session {
   status: 'working' | 'approval' | 'done' | 'error';
   activity: string;
   tool: string;
-  agents: string[];
+  agents: Subagent[];
   updatedAt: number;
   lastPromptAt: number;
   finishedAt: number | null;

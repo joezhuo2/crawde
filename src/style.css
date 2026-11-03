@@ -29,11 +29,23 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .chat-meta { font-size: 11px; }
 .chat-bubble.working .chat-activity, .chat-bubble.working .chat-meta { --shine: var(--ink); color: transparent; background-image: linear-gradient(90deg, var(--muted) 0%, var(--muted) 35%, var(--shine) 50%, var(--muted) 65%, var(--muted) 100%); background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; animation: subtitle-wave 2s linear infinite; }
 @keyframes subtitle-wave { 0% { background-position: 100% 0; } 60%, 100% { background-position: 0 0; } }
-.chat-list.expanded { height: calc(var(--count) * 110px + 20px + var(--footer-height)); }
-.expanded .bubbles { height: calc(var(--count) * 110px - 6px); }
+.chat-list.expanded { height: calc(var(--count) * 110px + 20px + var(--footer-height) + var(--extra-total, 0px)); }
+.expanded .bubbles { height: calc(var(--count) * 110px - 6px + var(--extra-total, 0px)); }
 .bubbles { opacity: 1; transform: translateY(0); transition: height 560ms cubic-bezier(.22,.68,.2,1), opacity 240ms ease, transform 240ms ease; }
 .bubbles.page-out, .bubbles.page-in { opacity: 0; transform: translateY(3px); pointer-events: none; }
-.expanded .chat-bubble { height: 104px; transform: translateY(calc(var(--index) * 110px)); }
+.expanded .chat-bubble { height: calc(104px + var(--extra, 0px)); transform: translateY(calc(var(--index) * 110px + var(--offset, 0px))); }
+.expanded .chat-bubble.has-agents .chat-open { height: 102px; }
+.chat-agents-toggle { position: absolute; left: 14px; top: 52px; max-width: calc(100% - 28px); height: 18px; padding: 0; border: 0; background-color: transparent; text-align: left; opacity: 0; pointer-events: none; transition: opacity 280ms; }
+.expanded .chat-agents-toggle { opacity: 1; pointer-events: auto; }
+.chat-agents-toggle:hover { color: var(--ink); }
+.agent-list { list-style: none; margin: 0 14px; padding: 0; height: 0; overflow: hidden; opacity: 0; scrollbar-width: thin; transition: height 560ms cubic-bezier(.22,.68,.2,1), opacity 280ms; }
+.agents-open .agent-list { height: var(--agents-height); overflow-y: auto; opacity: 1; }
+.agent-row { display: block; height: 32px; overflow: hidden; }
+.agent-line { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; line-height: 16px; }
+.agent-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 650; }
+.agent-state { flex-shrink: 0; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.agent-state.approval { color: var(--accent); }
+.agent-task { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; line-height: 16px; color: var(--muted); }
 .expanded .chat-details { max-height: 59px; padding-top: 5px; opacity: 1; }
 .expanded .chat-title > span { -webkit-line-clamp: 1; }
 .pagination { height: 24px; display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 11px; color: var(--muted); }

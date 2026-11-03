@@ -18,10 +18,30 @@ pub struct HookEvent {
     #[serde(default)]
     pub agent_id: String,
     #[serde(default)]
+    pub agent_type: String,
+    #[serde(default)]
     pub notification_type: String,
     #[serde(default)]
     pub transcript_path: String,
 }
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Subagent {
+    pub id: String,
+    pub name: String,
+    pub task: String,
+    pub state: String,
+    pub tool: String,
+}
+
+#[derive(Clone, Debug)]
+struct PendingTask {
+    agent_type: String,
+    task: String,
+}
+
+const MAX_PENDING_TASKS: usize = 32;
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -34,7 +54,9 @@ pub struct Session {
     pub status: String,
     pub activity: String,
     pub tool: String,
-    pub agents: BTreeSet<String>,
+    pub agents: Vec<Subagent>,
+    #[serde(skip)]
+    pending_tasks: Vec<PendingTask>,
     pub updated_at: u64,
     pub last_prompt_at: u64,
     pub finished_at: Option<u64>,
@@ -56,6 +78,76 @@ impl Session {
         }
         self.status = status.into();
         self.status_since = now;
+    }
+
+    fn clear_agents(&mut self) {
+        self.agents.clear();
+        self.pending_tasks.clear();
+    }
+
+    fn queue_task(&mut self, tool_input: &serde_json::Value) {
+        let text = |key: &str| {
+            tool_input
+                .get(key)
+                .and_then(|v| v.as_str())
+                .map(|v| short(v, 90))
+                .unwrap_or_default()
+        };
+        let task = match text("description") {
+            description if description.is_empty() => text("prompt"),
+            description => description,
+        };
+        if self.pending_tasks.len() >= MAX_PENDING_TASKS {
+            self.pending_tasks.remove(0);
+        }
+        self.pending_tasks.push(PendingTask {
+            agent_type: text("subagent_type"),
+            task,
+        });
+    }
+
+    fn take_task(&mut self, agent_type: &str) -> String {
+        let index = self.pending_tasks.iter().position(|p| {
+            p.agent_type.is_empty() || agent_type.is_empty() || p.agent_type == agent_type
+        });
+        index
+            .map(|i| self.pending_tasks.remove(i).task)
+            .unwrap_or_default()
+    }
+
+    fn start_agent(&mut self, event: &HookEvent) {
+        if self.agents.iter().any(|a| a.id == event.agent_id) {
+            return;
+        }
+        let name = short(&event.agent_type, 40);
+        let task = self.take_task(&name);
+        self.agents.push(Subagent {
+            id: event.agent_id.clone(),
+            name: if name.is_empty() {
+                "Agent".into()
+            } else {
+                name
+            },
+            task,
+            state: "starting".into(),
+            tool: String::new(),
+        });
+    }
+
+    fn track_agent(&mut self, event: &HookEvent) {
+        if event.agent_id.is_empty() {
+            return;
+        }
+        let (state, tool) = match event.hook_event_name.as_str() {
+            "PreToolUse" => ("working", short(&event.tool_name, 80)),
+            "PostToolUse" | "PostToolUseFailure" => ("thinking", String::new()),
+            "PermissionRequest" => ("approval", short(&event.tool_name, 80)),
+            _ => return,
+        };
+        if let Some(agent) = self.agents.iter_mut().find(|a| a.id == event.agent_id) {
+            agent.state = state.into();
+            agent.tool = tool;
+        }
     }
 }
 
@@ -119,7 +211,7 @@ impl Activity {
                 session.set_status("done", now);
                 session.activity = "✓ Session ended".into();
                 session.finished_at = Some(now);
-                session.agents.clear();
+                session.clear_agents();
             }
             return Ok(());
         }
@@ -149,7 +241,8 @@ impl Activity {
             status: "working".into(),
             activity: "💭 Getting ready".into(),
             tool: String::new(),
-            agents: BTreeSet::new(),
+            agents: Vec::new(),
+            pending_tasks: Vec::new(),
             updated_at: now,
             last_prompt_at: now,
             finished_at: None,
@@ -171,12 +264,17 @@ impl Activity {
                 session.finished_at = None;
                 session.activity = "💭 Thinking".into();
                 session.tool.clear();
-                session.agents.clear();
+                session.clear_agents();
             }
             "PreToolUse" | "PostToolUse" => {
                 session.set_status("working", now);
                 session.finished_at = None;
                 session.tool = short(&event.tool_name, 80);
+                if event.hook_event_name == "PreToolUse"
+                    && matches!(event.tool_name.as_str(), "Agent" | "Task")
+                {
+                    session.queue_task(&event.tool_input);
+                }
                 let label = match event.tool_name.as_str() {
                     "Read" | "Glob" | "Grep" => "📚 Reading",
                     "Edit" | "Write" | "NotebookEdit" => "✏️ Editing",
@@ -206,10 +304,10 @@ impl Activity {
                 session.activity = "✋ Waiting for your approval".into();
             }
             "SubagentStart" => {
-                session.agents.insert(event.agent_id);
+                session.start_agent(&event);
             }
             "SubagentStop" => {
-                session.agents.remove(&event.agent_id);
+                session.agents.retain(|a| a.id != event.agent_id);
             }
             "PostToolUseFailure" | "StopFailure" => {
                 session.set_status("error", now);
@@ -219,11 +317,12 @@ impl Activity {
                 session.set_status("done", now);
                 session.activity = "✓ Finished".into();
                 session.finished_at = Some(now);
-                session.agents.clear();
+                session.clear_agents();
                 session.tool.clear();
             }
             _ => {}
         }
+        session.track_agent(&event);
         Ok(())
     }
 
@@ -344,6 +443,111 @@ mod tests {
         assert_eq!(state.visible(3)[0].status, "approval");
         state.apply(event("PostToolUse"), 4).unwrap();
         assert_eq!(state.visible(4)[0].status, "working");
+    }
+    #[test]
+    fn subagents_record_name_task_and_current_tool() {
+        let mut state = Activity::default();
+        let mut delegate = event("PreToolUse");
+        delegate.tool_name = "Agent".into();
+        delegate.tool_input = serde_json::json!({
+            "description": "Audit the   hook\nreceiver",
+            "prompt": "Long instructions",
+            "subagent_type": "reviewer"
+        });
+        state.apply(delegate, 1).unwrap();
+        let mut start = event("SubagentStart");
+        start.agent_id = "a1".into();
+        start.agent_type = "reviewer".into();
+        state.apply(start, 2).unwrap();
+        let agent = state.visible(2)[0].agents[0].clone();
+        assert_eq!(agent.id, "a1");
+        assert_eq!(agent.name, "reviewer");
+        assert_eq!(agent.task, "Audit the hook receiver");
+        assert_eq!(agent.state, "starting");
+        let mut tool = event("PreToolUse");
+        tool.agent_id = "a1".into();
+        tool.tool_name = "Grep".into();
+        state.apply(tool.clone(), 3).unwrap();
+        let agent = state.visible(3)[0].agents[0].clone();
+        assert_eq!(
+            (agent.state.as_str(), agent.tool.as_str()),
+            ("working", "Grep")
+        );
+        tool.hook_event_name = "PostToolUse".into();
+        state.apply(tool, 4).unwrap();
+        let agent = state.visible(4)[0].agents[0].clone();
+        assert_eq!(
+            (agent.state.as_str(), agent.tool.as_str()),
+            ("thinking", "")
+        );
+        let mut ask = event("PermissionRequest");
+        ask.agent_id = "a1".into();
+        ask.tool_name = "Bash".into();
+        state.apply(ask, 5).unwrap();
+        let agent = state.visible(5)[0].agents[0].clone();
+        assert_eq!(
+            (agent.state.as_str(), agent.tool.as_str()),
+            ("approval", "Bash")
+        );
+    }
+    #[test]
+    fn subagent_tasks_match_their_type_and_fall_back_to_the_prompt() {
+        let mut state = Activity::default();
+        for input in [
+            serde_json::json!({"description": "Map the repo", "subagent_type": "explorer"}),
+            serde_json::json!({"prompt": "Draft the notes", "subagent_type": "writer"}),
+        ] {
+            let mut delegate = event("PreToolUse");
+            delegate.tool_name = "Task".into();
+            delegate.tool_input = input;
+            state.apply(delegate, 1).unwrap();
+        }
+        for (id, kind) in [("w", "writer"), ("e", "explorer"), ("x", "")] {
+            let mut start = event("SubagentStart");
+            start.agent_id = id.into();
+            start.agent_type = kind.into();
+            state.apply(start, 2).unwrap();
+        }
+        let agents = &state.visible(2)[0].agents;
+        assert_eq!(agents[0].task, "Draft the notes");
+        assert_eq!(agents[1].task, "Map the repo");
+        assert_eq!(agents[2].name, "Agent");
+        assert_eq!(agents[2].task, "");
+    }
+    #[test]
+    fn subagent_events_ignore_unknown_agents_and_stop_removes_only_that_agent() {
+        let mut state = Activity::default();
+        for id in ["a", "b"] {
+            let mut start = event("SubagentStart");
+            start.agent_id = id.into();
+            state.apply(start, 1).unwrap();
+        }
+        let mut stray = event("PreToolUse");
+        stray.agent_id = "ghost".into();
+        stray.tool_name = "Read".into();
+        state.apply(stray, 2).unwrap();
+        assert_eq!(state.visible(2)[0].agents.len(), 2);
+        let mut stop = event("SubagentStop");
+        stop.agent_id = "a".into();
+        state.apply(stop, 3).unwrap();
+        let agents = &state.visible(3)[0].agents;
+        assert_eq!(agents.len(), 1);
+        assert_eq!(agents[0].id, "b");
+        state.apply(event("Stop"), 4).unwrap();
+        assert!(state.visible(4)[0].agents.is_empty());
+    }
+    #[test]
+    fn subagents_serialize_in_camel_case_and_hide_pending_tasks() {
+        let mut state = Activity::default();
+        let mut start = event("SubagentStart");
+        start.agent_id = "a".into();
+        start.agent_type = "explorer".into();
+        state.apply(start, 1).unwrap();
+        let value = serde_json::to_value(&state.visible(1)[0]).unwrap();
+        assert_eq!(value["agents"][0]["id"], "a");
+        assert_eq!(value["agents"][0]["name"], "explorer");
+        assert_eq!(value["agents"][0]["state"], "starting");
+        assert!(value.get("pendingTasks").is_none());
     }
     #[test]
     fn working_and_waiting_time_accumulate_across_status_changes() {

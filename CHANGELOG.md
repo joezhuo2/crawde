@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.32 — 2026-11-02
+
+- Expand the running-subagent line on a chat card to see each subagent's name, task, and current state.
+
 ## 0.1.31 — 2026-11-02
 
 - Chat cards show session timing: elapsed working time, time spent waiting for approval, and how long ago activity last arrived.

@@ -2,6 +2,7 @@ import { ArrowLeft, ArrowRight, Check, PushPin, PushPinSlash, X } from '@phospho
 import { useEffect, useRef, useState } from 'react';
 import type { Session } from './types';
 import { sessionTiming } from './sessionTiming';
+import { agentExtraHeight, agentListHeight, agentStateLabel, agentSummary } from './subagents';
 
 interface Props {
   sessions: Session[];
@@ -22,6 +23,13 @@ export function ChatBubbles({ sessions, expanded, pinned, onPin, onOpen, onDismi
   useEffect(() => { setPage(p => Math.min(p, pages - 1)); }, [pages]);
   const ticking = expanded && sessions.some(s => s.status === 'working' || s.status === 'approval');
   const [, setTick] = useState(0);
+  const [openAgents, setOpenAgents] = useState<ReadonlySet<string>>(new Set());
+  useEffect(() => { if (!expanded) setOpenAgents(current => current.size ? new Set() : current); }, [expanded]);
+  const toggleAgents = (id: string) => setOpenAgents(current => {
+    const next = new Set(current);
+    if (!next.delete(id)) next.add(id);
+    return next;
+  });
   useEffect(() => {
     if (!ticking) return;
     const timer = setInterval(() => setTick(t => t + 1), 1000);
@@ -42,9 +50,12 @@ export function ChatBubbles({ sessions, expanded, pinned, onPin, onOpen, onDismi
     pageTimer.current = setTimeout(() => { setPage(Math.min(next, pageCount.current - 1)); setPhase('in'); }, 200);
   };
   const visible = sessions.slice(page * 3, page * 3 + 3);
+  const extras = visible.map(session => expanded && openAgents.has(session.id) ? agentExtraHeight(session.agents.length) : 0);
+  const offsets = extras.map((_, index) => extras.slice(0, index).reduce((sum, value) => sum + value, 0));
+  const extraTotal = extras.reduce((sum, value) => sum + value, 0);
   if (!sessions.length) return null;
 
-  return <section className={`chat-list ${expanded ? 'expanded' : 'collapsed'}`} style={{ '--count': visible.length, '--footer-height': pages > 1 ? '24px' : '0px' } as React.CSSProperties} aria-label="Active Claude chats">
+  return <section className={`chat-list ${expanded ? 'expanded' : 'collapsed'}`} style={{ '--count': visible.length, '--footer-height': pages > 1 ? '24px' : '0px', '--extra-total': `${extraTotal}px` } as React.CSSProperties} aria-label="Active Claude chats">
     <div className="list-heading">
       <span>{sessions.length} {sessions.length === 1 ? 'conversation' : 'conversations'}</span>
       <button className="icon-button pin" tabIndex={expanded ? 0 : -1} title={pinned ? 'Unpin chats' : 'Keep chats expanded'} aria-pressed={pinned} onClick={onPin}>
@@ -52,19 +63,31 @@ export function ChatBubbles({ sessions, expanded, pinned, onPin, onOpen, onDismi
       </button>
     </div>
     <div className={`bubbles page-${phase}`} aria-busy={phase !== 'steady'}>
-      {visible.map((session, index) => <article key={session.id} className={`chat-bubble ${session.status}`} style={{ '--index': index } as React.CSSProperties}>
+      {visible.map((session, index) => {
+        const hasAgents = session.agents.length > 0;
+        const agentsOpen = hasAgents && extras[index] > 0;
+        const listId = `agents-${session.id}`;
+        return <article key={session.id} className={`chat-bubble ${session.status}${hasAgents ? ' has-agents' : ''}${agentsOpen ? ' agents-open' : ''}`} style={{ '--index': index, '--extra': `${extras[index]}px`, '--offset': `${offsets[index]}px`, '--agents-height': `${agentListHeight(session.agents.length)}px` } as React.CSSProperties}>
         <button className="chat-open" onClick={() => onOpen(session.id)} aria-label={`Open ${session.project} · ${session.title}`}>
         <span className="chat-title"><span>{session.project} <span className="separator">·</span> {session.title}</span>{session.status === 'done' && <Check weight="bold" size={15} />}</span>
         <span className="chat-details">
           <span className="chat-activity">{session.activity}</span>
-          <span className="chat-meta">{session.agents.length
-            ? `🤝 ${session.agents.length} subagent${session.agents.length === 1 ? '' : 's'} running`
-            : session.tool ? `🛠️ ${session.tool}` : session.status === 'done' ? '🌿 All wrapped up' : '💭 Working on your request'}</span>
+          {hasAgents
+            ? <span className="chat-meta" aria-hidden="true">&nbsp;</span>
+            : <span className="chat-meta">{session.tool ? `🛠️ ${session.tool}` : session.status === 'done' ? '🌿 All wrapped up' : '💭 Working on your request'}</span>}
           <span className="chat-meta">{sessionTiming(session, Date.now())}</span>
         </span>
         </button>
+        {hasAgents && <button className="chat-meta chat-agents-toggle" tabIndex={expanded ? 0 : -1} aria-expanded={agentsOpen} aria-controls={listId} onClick={() => toggleAgents(session.id)}>{agentSummary(session.agents.length)} {agentsOpen ? '▴' : '▾'}</button>}
+        {hasAgents && <ul className="agent-list" id={listId} aria-label="Running subagents" inert={!agentsOpen}>
+          {session.agents.map(agent => <li key={agent.id} className="agent-row">
+            <span className="agent-line"><span className="agent-name">{agent.name}</span><span className={`agent-state ${agent.state}`}>{agentStateLabel(agent)}</span></span>
+            <span className="agent-task">{agent.task || 'No task details'}</span>
+          </li>)}
+        </ul>}
         <button className="icon-button chat-close" aria-label={`Dismiss ${session.title}`} onClick={() => onDismiss(session.id)}><X size={12} weight="bold" /></button>
-      </article>)}
+      </article>;
+      })}
     </div>
     {pages > 1 && <nav className="pagination" aria-label="More chats">
       <button className="icon-button" disabled={page === 0 || phase !== 'steady'} onClick={() => goToPage(page - 1)} aria-label="Previous chats"><ArrowLeft size={14} /></button>

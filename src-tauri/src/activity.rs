@@ -63,6 +63,7 @@ pub struct Session {
     pub working_ms: u64,
     pub waiting_ms: u64,
     pub status_since: u64,
+    pub context_pct: Option<u8>,
 }
 
 impl Session {
@@ -169,6 +170,10 @@ pub fn short(text: &str, max: usize) -> String {
         .collect()
 }
 
+pub fn valid_session_id(id: &str) -> bool {
+    id.len() <= 128 && !id.is_empty() && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
+}
+
 impl Activity {
     pub fn apply(&mut self, event: HookEvent, now: u64) -> Result<(), String> {
         if event
@@ -178,13 +183,7 @@ impl Activity {
         {
             return Err("Invalid WSL distro".into());
         }
-        if event.session_id.len() > 128
-            || event.session_id.is_empty()
-            || !event
-                .session_id
-                .chars()
-                .all(|c| c.is_ascii_alphanumeric() || c == '-')
-        {
+        if !valid_session_id(&event.session_id) {
             return Err("Invalid session id".into());
         }
         let id = event.session_id.clone();
@@ -249,6 +248,7 @@ impl Activity {
             working_ms: 0,
             waiting_ms: 0,
             status_since: now,
+            context_pct: None,
         });
         session.updated_at = now;
         match event.hook_event_name.as_str() {
@@ -593,5 +593,23 @@ mod tests {
         assert_eq!(value["waitingMs"], 0);
         assert_eq!(value["statusSince"], 5);
         assert_eq!(value["updatedAt"], 5);
+    }
+    #[test]
+    fn session_serializes_context_percent_in_camel_case() {
+        let mut state = Activity::default();
+        state.apply(event("UserPromptSubmit"), 5).unwrap();
+        let value = serde_json::to_value(&state.visible(5)[0]).unwrap();
+        assert!(value["contextPct"].is_null());
+        state.sessions.get_mut("test-1").unwrap().context_pct = Some(41);
+        let value = serde_json::to_value(&state.visible(6)[0]).unwrap();
+        assert_eq!(value["contextPct"], 41);
+    }
+    #[test]
+    fn session_ids_allow_only_short_alphanumeric_and_dash() {
+        assert!(valid_session_id("3f2a-ABC-9"));
+        assert!(!valid_session_id(""));
+        assert!(!valid_session_id("../x"));
+        assert!(!valid_session_id("a b"));
+        assert!(!valid_session_id(&"a".repeat(129)));
     }
 }

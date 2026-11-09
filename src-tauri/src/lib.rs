@@ -6,6 +6,7 @@ mod notifications;
 mod platform;
 mod position;
 mod preferences;
+mod statusline;
 mod titles;
 mod updates;
 mod wsl;

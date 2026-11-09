@@ -140,15 +140,19 @@ pub fn start(app: AppHandle) -> Result<(), String> {
                                     &event.session_id,
                                     &event.transcript_path,
                                 );
+                                let context_pct = crate::statusline::context_pct(&event.session_id);
                                 let session_id = event.session_id.clone();
                                 let state = app.state::<AppState>();
                                 let status = match state.activity.lock() {
                                     Ok(mut activity) => {
                                         if activity.apply(event, now()).is_ok() {
-                                            if let (Some(title), Some(session)) =
-                                                (title, activity.sessions.get_mut(&session_id))
+                                            if let Some(session) =
+                                                activity.sessions.get_mut(&session_id)
                                             {
-                                                session.title = title;
+                                                if let Some(title) = title {
+                                                    session.title = title;
+                                                }
+                                                session.context_pct = context_pct;
                                             }
                                             200
                                         } else {

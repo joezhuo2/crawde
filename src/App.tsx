@@ -9,6 +9,8 @@ import { usePetPosition } from './usePetPosition';
 import { defaults } from './preferences';
 import { useBehavior } from './useBehavior';
 import { attackDelay } from './wander';
+import { UsageRings } from './UsageRings';
+import { hasUsage } from './usageRing';
 
 export function App() {
   const activity = useActivity();
@@ -61,7 +63,7 @@ export function App() {
       setDismissed(current => ({ ...current, [id]: session.lastPromptAt }));
     } catch (error) { setNotice(String(error)); }
   };
-  return <main className={`pet-scene ${expanded ? 'is-expanded' : ''} ${activity.dockRight ? 'dock-right' : ''} ${activity.dockTop ? 'dock-top' : ''}`} aria-label="Crawde desktop companion"
+  return <main className={`pet-scene ${expanded ? 'is-expanded' : ''} ${activity.dockRight ? 'dock-right' : ''} ${activity.dockTop ? 'dock-top' : ''} ${hasUsage(activity.usage) ? 'has-rings' : ''}`} aria-label="Crawde desktop companion"
     style={{ '--pet-x': `${activity.petX ?? 16}px`, '--pet-y': activity.petY == null ? `calc(100% - ${24 * preferences.scale + 6}px)` : `${activity.petY}px`, '--pet-width': `${32 * preferences.scale}px`, '--pet-height': `${24 * preferences.scale}px` } as React.CSSProperties}
     onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
     onContextMenu={event => { event.preventDefault(); void act('show_context_menu'); }}>
@@ -71,9 +73,12 @@ export function App() {
     {expanded && !activity.hooksInstalled && native && <button className="connect-bubble" onClick={() => void act('configure_hooks', { install: true })}>Connect to Claude Code <span>Enable activity hooks</span></button>}
     </div>
     <div className="pet-anchor">
-      <button ref={position.petRef} className="pet-button" aria-label="Open Claude. Drag to move Crawde." {...position.handlers} onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) { e.preventDefault(); activatePet(); } }}>
-        <Sprite animation={position.running && behavior.animation === 'idle' ? 'run' : behavior.animation} scale={preferences.scale} reducedMotion={behavior.reduced} facing={position.facing} onComplete={behavior.complete} />
-      </button>
+      <div ref={position.petRef} className="pet-body">
+        <button className="pet-button" aria-label="Open Claude. Drag to move Crawde." {...position.handlers} onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) { e.preventDefault(); activatePet(); } }}>
+          <Sprite animation={position.running && behavior.animation === 'idle' ? 'run' : behavior.animation} scale={preferences.scale} reducedMotion={behavior.reduced} facing={position.facing} onComplete={behavior.complete} />
+        </button>
+        <UsageRings usage={activity.usage} />
+      </div>
     </div>
     {!native && <aside className="preview-label">Crawde · browser preview <button className="icon-button" title="Preview settings" onClick={() => location.search = '?settings&demo'}><Gear size={16} /></button></aside>}
   </main>;

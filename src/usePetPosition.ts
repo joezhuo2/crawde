@@ -16,7 +16,7 @@ export function usePetPosition(interacting: boolean, roaming: boolean, mode: Wal
     const send = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        const regions = Array.from(document.querySelectorAll('.pet-button, .chat-list.expanded, .chat-bubble, .list-heading, .pagination, .notice, .connect-bubble'))
+        const regions = Array.from(document.querySelectorAll('.pet-button, .usage-rings, .chat-list.expanded, .chat-bubble, .list-heading, .pagination, .notice, .connect-bubble'))
           .filter(node => getComputedStyle(node).opacity !== '0')
           .map(node => {
             const r = node.getBoundingClientRect();

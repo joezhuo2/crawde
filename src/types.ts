@@ -24,6 +24,16 @@ export interface Session {
   contextPct?: number | null;
 }
 
+export interface UsageWindow {
+  pct: number;
+  resetsAt?: number | null;
+}
+
+export interface Usage {
+  fiveHour?: UsageWindow | null;
+  sevenDay?: UsageWindow | null;
+}
+
 export interface Snapshot {
   sessions: Session[];
   hooksInstalled: boolean;
@@ -38,4 +48,5 @@ export interface Snapshot {
   lastActivityAt?: number;
   lastEventAt?: number;
   update?: { checkedAt: number; available: boolean; version: string | null; message: string };
+  usage?: Usage | null;
 }

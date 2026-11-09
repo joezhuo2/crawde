@@ -21,6 +21,7 @@ export interface Session {
   workingMs: number;
   waitingMs: number;
   statusSince: number;
+  contextPct?: number | null;
 }
 
 export interface Snapshot {

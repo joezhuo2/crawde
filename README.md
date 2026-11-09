@@ -104,6 +104,7 @@ leave Crawde running and offer a retry; the About tab also shows update status.
 - **Completion:** a checkmark and sound; finished cards leave after thirty seconds.
 - **Dismiss:** each card has an ×. It stays hidden until that chat receives a new prompt.
 - **Open:** click a card to resume its conversation.
+- **Context usage:** each card shows its context percentage, such as `41% ctx`, in the bottom-right corner. Usage rings under the pet show plan limits; see [Context % and plan usage](#context--and-plan-usage).
 - **Working:** while a chat is working, its subtitle lines shimmer with a soft
   highlight about every 2 seconds; reduced motion turns this off.
 
@@ -158,8 +159,14 @@ it never approves or denies Claude's actions.
 
 ### Context % and plan usage
 
-Cards show each chat's context usage, such as `41% ctx`, from Claude Code's status line.
-Point `statusLine` in `~/.claude/settings.json` at `scripts/crawde-statusline.mjs`:
+Each chat card shows its context usage in the bottom-right corner, such as `41% ctx`,
+colored green, amber, or red. Two small rings in the navbar under the pet show your
+5-hour and weekly (7d) plan usage. Hover or focus a ring for the percentage used and
+when that window resets. The rings turn amber at 60% and red above 85%, and stay hidden
+until Claude Code reports plan limits (subscribers only, after the first response of a session).
+
+Both come from Claude Code's status line. Point `statusLine` in `~/.claude/settings.json`
+at `scripts/crawde-statusline.mjs`:
 
 ```json
 "statusLine": {"type": "command", "command": "node <path>/crawde-statusline.mjs"}
@@ -168,11 +175,6 @@ Point `statusLine` in `~/.claude/settings.json` at `scripts/crawde-statusline.mj
 The script saves the status JSON to `~/.crawde/statusline/` and prints nothing. To keep an
 existing status line, set `CRAWDE_STATUSLINE_NEXT` to its command; the script pipes the same
 input to it and echoes its output. Crawde re-reads the value on each hook event.
-
-With the same status line setup, two small rings under the pet show your 5-hour and weekly (7d) plan
-usage. Hover or focus a ring for the percentage used and when the window resets. The rings turn amber
-at 60% and red above 85%, and stay hidden until Claude Code reports plan limits (subscribers only, after
-the first response of a session).
 
 ### Ubuntu/Linux sessions in WSL
 

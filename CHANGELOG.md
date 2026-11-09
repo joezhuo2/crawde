@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0 — 2026-11-09
+
+- Chat cards show context usage as `NN% ctx` in the bottom-right corner, colored green, amber, or red.
+- New compact navbar under the pet sprite with two rings for 5h and weekly plan usage, with hover details.
+- Both are fed by a new statusLine capture script, `scripts/crawde-statusline.mjs`. Setup is in the README, and it can chain an existing statusline through `CRAWDE_STATUSLINE_NEXT`.
 ## 0.1.33 — 2026-11-02
 
 - Add best-effort macOS support: no Dock icon, Terminal handoff for sessions, Application Support paths, and a .dmg built and attached to each release by CI. Untested on real macOS hardware.

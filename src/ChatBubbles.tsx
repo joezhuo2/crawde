@@ -2,6 +2,7 @@ import { ArrowLeft, ArrowRight, Check, PushPin, PushPinSlash, X } from '@phospho
 import { useEffect, useRef, useState } from 'react';
 import type { Session } from './types';
 import { sessionTiming } from './sessionTiming';
+import { contextLevel } from './contextPct';
 import { agentExtraHeight, agentListHeight, agentStateLabel, agentSummary } from './subagents';
 
 interface Props {
@@ -78,6 +79,7 @@ export function ChatBubbles({ sessions, expanded, pinned, onPin, onOpen, onDismi
           <span className="chat-meta">{sessionTiming(session, Date.now())}</span>
         </span>
         </button>
+        {typeof session.contextPct === 'number' && <span className={`chat-ctx ${contextLevel(session.contextPct)}`}>{session.contextPct}% ctx</span>}
         {hasAgents && <button className="chat-meta chat-agents-toggle" tabIndex={expanded ? 0 : -1} aria-expanded={agentsOpen} aria-controls={listId} onClick={() => toggleAgents(session.id)}>{agentSummary(session.agents.length)} {agentsOpen ? '▴' : '▾'}</button>}
         {hasAgents && <ul className="agent-list" id={listId} aria-label="Running subagents" inert={!agentsOpen}>
           {session.agents.map(agent => <li key={agent.id} className="agent-row">

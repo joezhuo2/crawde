@@ -1,4 +1,4 @@
-:root { font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif; color: #292724; background: transparent; --surface: #fcfbf9; --ink: #292724; --muted: #65615c; --line: #dedbd5; --accent: #b6532e; --tint: #fff0e7; --control: #f2efea; color-scheme: light dark; }
+:root { font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif; color: #292724; background: transparent; --surface: #fcfbf9; --ink: #292724; --muted: #65615c; --line: #dedbd5; --accent: #b6532e; --tint: #fff0e7; --control: #f2efea; --ctx-warn: #946200; --ctx-high: #b3261e; color-scheme: light dark; }
 * { box-sizing: border-box; }
 html, body, #root { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
 button, input, select { font: inherit; }
@@ -27,6 +27,10 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .chat-details { display: block; max-height: 0; padding-top: 0; opacity: 0; overflow: hidden; transition: max-height 560ms, padding-top 560ms, opacity 280ms; }
 .chat-activity, .chat-meta { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12px; line-height: 18px; }
 .chat-meta { font-size: 11px; }
+.chat-ctx { position: absolute; right: 14px; top: 26px; font-size: 11px; line-height: 12px; color: var(--muted); white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 280ms, top 560ms cubic-bezier(.22,.68,.2,1); }
+.expanded .chat-ctx { top: 88px; opacity: 1; }
+.chat-ctx.warn { color: var(--ctx-warn); }
+.chat-ctx.high { color: var(--ctx-high); }
 .chat-bubble.working .chat-activity, .chat-bubble.working .chat-meta { --shine: var(--ink); color: transparent; background-image: linear-gradient(90deg, var(--muted) 0%, var(--muted) 35%, var(--shine) 50%, var(--muted) 65%, var(--muted) 100%); background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; animation: subtitle-wave 2s linear infinite; }
 @keyframes subtitle-wave { 0% { background-position: 100% 0; } 60%, 100% { background-position: 0 0; } }
 .chat-list.expanded { height: calc(var(--count) * 110px + 20px + var(--footer-height) + var(--extra-total, 0px)); }
@@ -64,9 +68,9 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .connect-bubble span { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
 .preview-label { position: fixed; top: 18px; left: 20px; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
 .muted { color: var(--muted); }
-@media (prefers-color-scheme: dark) { :root { --surface: #282623; --ink: #f0ede8; --muted: #b5afa6; --line: #47423c; --accent: #ed9a6f; --tint: #3e2d24; --control: #36322d; color: var(--ink); } }
-[data-theme='light'] { --surface: #fcfbf9; --ink: #292724; --muted: #65615c; --line: #dedbd5; --accent: #b6532e; --tint: #fff0e7; --control: #f2efea; color: var(--ink); color-scheme: light; }
-[data-theme='dark'] { --surface: #282623; --ink: #f0ede8; --muted: #b5afa6; --line: #47423c; --accent: #ed9a6f; --tint: #3e2d24; --control: #36322d; color: var(--ink); color-scheme: dark; }
+@media (prefers-color-scheme: dark) { :root { --surface: #282623; --ink: #f0ede8; --muted: #b5afa6; --line: #47423c; --accent: #ed9a6f; --tint: #3e2d24; --control: #36322d; --ctx-warn: #e3b04b; --ctx-high: #f28b82; color: var(--ink); } }
+[data-theme='light'] { --surface: #fcfbf9; --ink: #292724; --muted: #65615c; --line: #dedbd5; --accent: #b6532e; --tint: #fff0e7; --control: #f2efea; --ctx-warn: #946200; --ctx-high: #b3261e; color: var(--ink); color-scheme: light; }
+[data-theme='dark'] { --surface: #282623; --ink: #f0ede8; --muted: #b5afa6; --line: #47423c; --accent: #ed9a6f; --tint: #3e2d24; --control: #36322d; --ctx-warn: #e3b04b; --ctx-high: #f28b82; color: var(--ink); color-scheme: dark; }
 .sprite-wrap { display: block; position: relative; }
 .sprite { display: block; position: relative; image-rendering: pixelated; background-repeat: no-repeat; }
 .sprite-fx { position: absolute; pointer-events: none; image-rendering: pixelated; background-repeat: no-repeat; }

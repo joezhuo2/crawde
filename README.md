@@ -156,6 +156,19 @@ and removes only its own handlers when disconnected. Older startup-hook
 configurations are repaired automatically when Crawde launches. It observes work;
 it never approves or denies Claude's actions.
 
+### Context % and plan usage
+
+Cards show each chat's context usage, such as `41% ctx`, from Claude Code's status line.
+Point `statusLine` in `~/.claude/settings.json` at `scripts/crawde-statusline.mjs`:
+
+```json
+"statusLine": {"type": "command", "command": "node <path>/crawde-statusline.mjs"}
+```
+
+The script saves the status JSON to `~/.crawde/statusline/` and prints nothing. To keep an
+existing status line, set `CRAWDE_STATUSLINE_NEXT` to its command; the script pipes the same
+input to it and echoes its output. Crawde re-reads the value on each hook event.
+
 ### Ubuntu/Linux sessions in WSL
 
 After upgrading to 0.1.8, choose **Reinstall activity hooks**. Crawde updates the

@@ -169,6 +169,11 @@ The script saves the status JSON to `~/.crawde/statusline/` and prints nothing. 
 existing status line, set `CRAWDE_STATUSLINE_NEXT` to its command; the script pipes the same
 input to it and echoes its output. Crawde re-reads the value on each hook event.
 
+With the same status line setup, two small rings under the pet show your 5-hour and weekly (7d) plan
+usage. Hover or focus a ring for the percentage used and when the window resets. The rings turn amber
+at 60% and red above 85%, and stay hidden until Claude Code reports plan limits (subscribers only, after
+the first response of a session).
+
 ### Ubuntu/Linux sessions in WSL
 
 After upgrading to 0.1.8, choose **Reinstall activity hooks**. Crawde updates the

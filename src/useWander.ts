@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { nextWalk, walkDelay, type WalkMode } from './wander';
 
 export function useWander(paused: boolean, enabled: boolean, mode: WalkMode, layoutKey: string) {
-  const ref = useRef<HTMLButtonElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
   const offset = useRef(0);
   const home = useRef(0);
   const motion = useRef<Animation | null>(null);
@@ -36,7 +36,7 @@ export function useWander(paused: boolean, enabled: boolean, mode: WalkMode, lay
     let disposed = false;
     const schedule = () => { timer = window.setTimeout(walk, walkDelay(mode)); };
     const walk = () => {
-      if (disposed || document.hidden || element.matches(':focus-visible')) { if (!disposed) schedule(); return; }
+      if (disposed || document.hidden || element.matches(':has(:focus-visible)')) { if (!disposed) schedule(); return; }
       const target = nextWalk(offset.current, home.current, min, max);
       if (Math.abs(target - offset.current) < 1) { schedule(); return; }
       setFacing(target > offset.current ? 1 : -1);

@@ -25,6 +25,7 @@ struct AppState {
     notifications: Mutex<notifications::Notifications>,
     navigation: Mutex<navigation::Navigation>,
     update: Mutex<Option<updates::UpdateInfo>>,
+    usage: Mutex<Option<statusline::Usage>>,
     update_busy: std::sync::atomic::AtomicBool,
     menu_message: Mutex<Option<String>>,
 }
@@ -45,6 +46,7 @@ struct Snapshot {
     last_activity_at: u64,
     last_event_at: u64,
     update: Option<updates::UpdateInfo>,
+    usage: Option<statusline::Usage>,
 }
 
 #[tauri::command]
@@ -69,6 +71,7 @@ fn snapshot(state: State<AppState>) -> Result<Snapshot, String> {
         last_activity_at,
         last_event_at,
         update: state.update.lock().map_err(|e| e.to_string())?.clone(),
+        usage: state.usage.lock().map_err(|e| e.to_string())?.clone(),
         hooks_installed: bridge::installed(),
         bridge_error: state
             .bridge_error

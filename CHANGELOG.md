@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 — 2026-11-09
+
+- Context % on chat cards now also works for Claude desktop Code tab sessions: when no statusLine data exists, it is estimated from the last assistant usage in the session transcript.
+- Usage rings are now static: they stay centered under the crab instead of walking with it, and their arcs no longer animate.
+
 ## 0.2.0 — 2026-11-09
 
 - Chat cards show context usage as `NN% ctx` in the bottom-right corner, colored green, amber, or red.

@@ -1,12 +1,23 @@
 use serde_json::Value;
 use std::{fs::File, io::Read, path::Path};
 
-fn percent_in(directory: &Path, session_id: &str) -> Option<u8> {
-    if !crate::activity::valid_session_id(session_id) {
-        return None;
-    }
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Window {
+    pub pct: u8,
+    pub resets_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Usage {
+    pub five_hour: Option<Window>,
+    pub seven_day: Option<Window>,
+}
+
+fn read_json(path: &Path) -> Option<Value> {
     let mut text = String::new();
-    File::open(directory.join(format!("{session_id}.json")))
+    File::open(path)
         .ok()?
         .take(65_537)
         .read_to_string(&mut text)
@@ -14,12 +25,51 @@ fn percent_in(directory: &Path, session_id: &str) -> Option<u8> {
     if text.len() > 65_536 {
         return None;
     }
-    let value: Value = serde_json::from_str(&text).ok()?;
+    serde_json::from_str(&text).ok()
+}
+
+fn percent(used: f64) -> u8 {
+    used.clamp(0.0, 100.0).round() as u8
+}
+
+fn percent_in(directory: &Path, session_id: &str) -> Option<u8> {
+    if !crate::activity::valid_session_id(session_id) {
+        return None;
+    }
+    let value = read_json(&directory.join(format!("{session_id}.json")))?;
     let used = value
         .get("context_window")?
         .get("used_percentage")?
         .as_f64()?;
-    Some(used.clamp(0.0, 100.0).round() as u8)
+    Some(percent(used))
+}
+
+fn window(limits: &Value, key: &str) -> Option<Window> {
+    let window = limits.get(key)?;
+    let used = window.get("used_percentage")?.as_f64()?;
+    let resets_at = window
+        .get("resets_at")
+        .and_then(Value::as_f64)
+        .filter(|seconds| *seconds >= 0.0)
+        .map(|seconds| seconds as u64);
+    Some(Window {
+        pct: percent(used),
+        resets_at,
+    })
+}
+
+fn usage_in(directory: &Path) -> Option<Usage> {
+    let value = read_json(&directory.join("latest.json"))?;
+    let limits = value.get("rate_limits")?;
+    let five_hour = window(limits, "five_hour");
+    let seven_day = window(limits, "seven_day");
+    if five_hour.is_none() && seven_day.is_none() {
+        return None;
+    }
+    Some(Usage {
+        five_hour,
+        seven_day,
+    })
 }
 
 pub fn context_pct(session_id: &str) -> Option<u8> {
@@ -27,6 +77,10 @@ pub fn context_pct(session_id: &str) -> Option<u8> {
         &crate::platform::home_dir().join(".crawde/statusline"),
         session_id,
     )
+}
+
+pub fn usage() -> Option<Usage> {
+    usage_in(&crate::platform::home_dir().join(".crawde/statusline"))
 }
 
 #[cfg(test)]
@@ -92,5 +146,79 @@ mod tests {
         assert_eq!(percent_in(&directory, "abc/../abc-1"), None);
         assert_eq!(percent_in(&directory, &"a".repeat(129)), None);
         fs::remove_dir_all(directory).unwrap();
+    }
+
+    fn usage(body: &str) -> Option<Usage> {
+        let directory = scratch();
+        fs::write(directory.join("latest.json"), body).unwrap();
+        let result = usage_in(&directory);
+        fs::remove_dir_all(directory).unwrap();
+        result
+    }
+
+    fn window(pct: u8, resets_at: Option<u64>) -> Option<Window> {
+        Some(Window { pct, resets_at })
+    }
+
+    #[test]
+    fn reads_both_rate_limit_windows() {
+        let result = usage(
+            r#"{"rate_limits":{"five_hour":{"used_percentage":37.4,"resets_at":1700000000},"seven_day":{"used_percentage":62.5,"resets_at":1700500000}}}"#,
+        )
+        .unwrap();
+        assert_eq!(result.five_hour, window(37, Some(1_700_000_000)));
+        assert_eq!(result.seven_day, window(63, Some(1_700_500_000)));
+    }
+
+    #[test]
+    fn clamps_usage_and_tolerates_missing_reset_times() {
+        let result = usage(
+            r#"{"rate_limits":{"five_hour":{"used_percentage":250},"seven_day":{"used_percentage":-4,"resets_at":null}}}"#,
+        )
+        .unwrap();
+        assert_eq!(result.five_hour, window(100, None));
+        assert_eq!(result.seven_day, window(0, None));
+    }
+
+    #[test]
+    fn a_single_window_is_enough() {
+        let only_five =
+            usage(r#"{"rate_limits":{"five_hour":{"used_percentage":10,"resets_at":5}}}"#).unwrap();
+        assert_eq!(only_five.five_hour, window(10, Some(5)));
+        assert_eq!(only_five.seven_day, None);
+        let only_week = usage(
+            r#"{"rate_limits":{"five_hour":{"resets_at":5},"seven_day":{"used_percentage":90}}}"#,
+        )
+        .unwrap();
+        assert_eq!(only_week.five_hour, None);
+        assert_eq!(only_week.seven_day, window(90, None));
+    }
+
+    #[test]
+    fn missing_or_malformed_rate_limits_yield_none() {
+        assert_eq!(usage(r#"{"session_id":"abc-1"}"#), None);
+        assert_eq!(usage(r#"{"rate_limits":null}"#), None);
+        assert_eq!(usage(r#"{"rate_limits":{}}"#), None);
+        assert_eq!(usage(r#"{"rate_limits":{"five_hour":{}}}"#), None);
+        assert_eq!(
+            usage(r#"{"rate_limits":{"five_hour":{"used_percentage":"9"}}}"#),
+            None
+        );
+        assert_eq!(usage("not json"), None);
+        assert_eq!(usage(""), None);
+        let directory = scratch();
+        assert_eq!(usage_in(&directory), None);
+        fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn usage_serializes_in_camel_case() {
+        let result =
+            usage(r#"{"rate_limits":{"five_hour":{"used_percentage":37,"resets_at":1700000000}}}"#)
+                .unwrap();
+        let value = serde_json::to_value(result).unwrap();
+        assert_eq!(value["fiveHour"]["pct"], 37);
+        assert_eq!(value["fiveHour"]["resetsAt"], 1_700_000_000u64);
+        assert!(value["sevenDay"].is_null());
     }
 }

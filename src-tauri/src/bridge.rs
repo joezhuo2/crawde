@@ -141,6 +141,7 @@ pub fn start(app: AppHandle) -> Result<(), String> {
                                     &event.transcript_path,
                                 );
                                 let context_pct = crate::statusline::context_pct(&event.session_id);
+                                let usage = crate::statusline::usage();
                                 let session_id = event.session_id.clone();
                                 let state = app.state::<AppState>();
                                 let status = match state.activity.lock() {
@@ -153,6 +154,9 @@ pub fn start(app: AppHandle) -> Result<(), String> {
                                                     session.title = title;
                                                 }
                                                 session.context_pct = context_pct;
+                                            }
+                                            if let Ok(mut current) = state.usage.lock() {
+                                                *current = usage;
                                             }
                                             200
                                         } else {

@@ -70,7 +70,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .usage-dial { position: relative; display: grid; place-items: center; width: 22px; height: 22px; }
 .usage-dial svg { position: absolute; inset: 0; fill: none; }
 .usage-track { stroke: var(--line); }
-.usage-arc { stroke: currentColor; transition: stroke-dasharray 400ms ease, stroke 400ms ease; }
+.usage-arc { stroke: currentColor; }
 .usage-label { position: relative; font-size: 8px; line-height: 8px; font-weight: 700; color: var(--ink); }
 .usage-tip { position: absolute; left: 0; bottom: calc(100% + 4px); width: max-content; max-width: 190px; padding: 6px 9px; font-size: 11px; line-height: 15px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 120ms; z-index: 3; }
 .usage-ring:hover .usage-tip, .usage-ring:focus-visible .usage-tip { opacity: 1; visibility: visible; }

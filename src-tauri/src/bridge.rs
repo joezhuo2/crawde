@@ -140,7 +140,7 @@ pub fn start(app: AppHandle) -> Result<(), String> {
                                     &event.session_id,
                                     &event.transcript_path,
                                 );
-                                let context_pct = crate::statusline::context_pct(&event.session_id);
+                                let context_pct = crate::statusline::context_pct(&event.session_id, &event.transcript_path);
                                 let usage = crate::statusline::usage();
                                 let session_id = event.session_id.clone();
                                 let state = app.state::<AppState>();

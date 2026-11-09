@@ -47,7 +47,7 @@ fn first_prompt(contents: &str) -> Option<String> {
     })
 }
 
-pub fn read_title(session_id: &str, transcript: &str) -> Option<String> {
+pub fn transcript_file(session_id: &str, transcript: &str) -> Option<std::path::PathBuf> {
     if transcript.is_empty() {
         return None;
     }
@@ -59,6 +59,11 @@ pub fn read_title(session_id: &str, transcript: &str) -> Option<String> {
     if !path.starts_with(root) || path.file_name()?.to_str()? != format!("{session_id}.jsonl") {
         return None;
     }
+    Some(path)
+}
+
+pub fn read_title(session_id: &str, transcript: &str) -> Option<String> {
+    let path = transcript_file(session_id, transcript)?;
     let mut file = File::open(path).ok()?;
     let length = file.metadata().ok()?.len();
     let mut head = Vec::new();

@@ -104,7 +104,11 @@ fn transcript_percent(path: &Path) -> Option<u8> {
     file.take(262_144).read_to_end(&mut tail).ok()?;
     let tail = String::from_utf8_lossy(&tail);
     let tokens = tail.lines().rev().find_map(tokens_in)?;
-    let window = if tokens > 200_000 { 1_000_000.0 } else { 200_000.0 };
+    let window = if tokens > 200_000 {
+        1_000_000.0
+    } else {
+        200_000.0
+    };
     Some(percent(tokens as f64 * 100.0 / window))
 }
 
@@ -113,9 +117,7 @@ pub fn context_pct(session_id: &str, transcript: &str) -> Option<u8> {
         &crate::platform::home_dir().join(".crawde/statusline"),
         session_id,
     )
-    .or_else(|| {
-        transcript_percent(&crate::titles::transcript_file(session_id, transcript)?)
-    })
+    .or_else(|| transcript_percent(&crate::titles::transcript_file(session_id, transcript)?))
 }
 
 pub fn usage() -> Option<Usage> {

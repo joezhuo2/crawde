@@ -117,12 +117,16 @@ fn transcript_percent(path: &Path) -> Option<u8> {
     Some(percent(tokens as f64 * 100.0 / window))
 }
 
-pub fn context_pct(session_id: &str, transcript: &str) -> Option<u8> {
+pub fn context_pct(session_id: &str, transcript: &str, distro: Option<&str>) -> Option<u8> {
     percent_in(
         &crate::platform::home_dir().join(".crawde/statusline"),
         session_id,
     )
-    .or_else(|| transcript_percent(&crate::titles::transcript_file(session_id, transcript)?))
+    .or_else(|| {
+        transcript_percent(&crate::titles::transcript_file(
+            session_id, transcript, distro,
+        )?)
+    })
 }
 
 pub fn usage() -> Option<Usage> {

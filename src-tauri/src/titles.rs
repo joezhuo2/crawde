@@ -47,9 +47,30 @@ fn first_prompt(contents: &str) -> Option<String> {
     })
 }
 
-pub fn transcript_file(session_id: &str, transcript: &str) -> Option<std::path::PathBuf> {
+fn wsl_transcript(session_id: &str, transcript: &str, distro: &str) -> Option<std::path::PathBuf> {
+    let segments: Vec<&str> = transcript.strip_prefix('/')?.split('/').collect();
+    let valid = !distro.is_empty()
+        && !distro.contains(['/', '\\'])
+        && segments.last() == Some(&format!("{session_id}.jsonl").as_str())
+        && segments.iter().all(|s| !s.is_empty() && *s != "..")
+        && segments
+            .windows(2)
+            .any(|pair| pair == [".claude", "projects"]);
+    valid.then(|| {
+        std::path::PathBuf::from(format!(r"\\wsl.localhost\{distro}\{}", segments.join("\\")))
+    })
+}
+
+pub fn transcript_file(
+    session_id: &str,
+    transcript: &str,
+    distro: Option<&str>,
+) -> Option<std::path::PathBuf> {
     if transcript.is_empty() {
         return None;
+    }
+    if let Some(distro) = distro {
+        return wsl_transcript(session_id, transcript, distro);
     }
     let path = Path::new(transcript).canonicalize().ok()?;
     let root = crate::bridge::config_dir()
@@ -62,8 +83,8 @@ pub fn transcript_file(session_id: &str, transcript: &str) -> Option<std::path::
     Some(path)
 }
 
-pub fn read_title(session_id: &str, transcript: &str) -> Option<String> {
-    let path = transcript_file(session_id, transcript)?;
+pub fn read_title(session_id: &str, transcript: &str, distro: Option<&str>) -> Option<String> {
+    let path = transcript_file(session_id, transcript, distro)?;
     let mut file = File::open(path).ok()?;
     let length = file.metadata().ok()?.len();
     let mut head = Vec::new();
@@ -89,6 +110,22 @@ pub fn read_title(session_id: &str, transcript: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn wsl_transcripts_map_to_unc_paths_and_reject_traversal() {
+        let ok = "/home/u/.claude/projects/-home-u-app/abc.jsonl";
+        assert_eq!(
+            wsl_transcript("abc", ok, "Ubuntu")
+                .unwrap()
+                .to_str()
+                .unwrap(),
+            r"\\wsl.localhost\Ubuntu\home\u\.claude\projects\-home-u-app\abc.jsonl"
+        );
+        assert!(wsl_transcript("abc", ok, "..\\x").is_none());
+        assert!(wsl_transcript("other", ok, "Ubuntu").is_none());
+        assert!(wsl_transcript("abc", "/home/u/.claude/projects/../abc.jsonl", "Ubuntu").is_none());
+        assert!(wsl_transcript("abc", "/etc/abc.jsonl", "Ubuntu").is_none());
+    }
+
     #[test]
     fn transcript_names_ignore_meta_and_accept_custom_titles() {
         let lines = "{\"type\":\"user\",\"isMeta\":true,\"message\":{\"content\":\"metadata\"}}\n{\"type\":\"user\",\"message\":{\"content\":[{\"type\":\"text\",\"text\":\"Build a crab companion\"}]}}";

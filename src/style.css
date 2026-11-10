@@ -28,8 +28,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .chat-details { display: block; max-height: 0; padding-top: 0; opacity: 0; overflow: hidden; transition: max-height 560ms, padding-top 560ms, opacity 280ms; }
 .chat-activity, .chat-meta { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12px; line-height: 18px; }
 .chat-meta { font-size: 11px; }
-.chat-ctx { position: absolute; right: 14px; top: 26px; font-size: 11px; line-height: 12px; color: var(--muted); white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 280ms, top 560ms cubic-bezier(.22,.68,.2,1); }
-.expanded .chat-ctx { top: 88px; opacity: 1; }
+.chat-ctx { position: absolute; right: 11px; top: 23px; font-size: 11px; line-height: 18px; color: var(--muted); white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 280ms, top 560ms cubic-bezier(.22,.68,.2,1); }
+.expanded .chat-ctx { top: 70px; opacity: 1; }
 .chat-ctx.warn { color: var(--ctx-warn); }
 .chat-ctx.high { color: var(--ctx-high); }
 .chat-bubble.working .chat-activity, .chat-bubble.working .chat-meta { --shine: var(--ink); color: transparent; background-image: linear-gradient(90deg, var(--muted) 0%, var(--muted) 35%, var(--shine) 50%, var(--muted) 65%, var(--muted) 100%); background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; animation: subtitle-wave 2s linear infinite; }

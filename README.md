@@ -176,6 +176,10 @@ The script saves the status JSON to `~/.crawde/statusline/` and prints nothing. 
 existing status line, set `CRAWDE_STATUSLINE_NEXT` to its command; the script pipes the same
 input to it and echoes its output. Crawde re-reads the value on each hook event.
 
+The rate-limit rings (5h and 7d) still need the terminal CLI's status line script. Context %
+works in both the CLI and the Claude desktop Code tab; in the desktop tab it is estimated from
+the session transcript when no status line data exists.
+
 ### Ubuntu/Linux sessions in WSL
 
 After upgrading to 0.1.8, choose **Reinstall activity hooks**. Crawde updates the

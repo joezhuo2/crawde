@@ -77,8 +77,8 @@ export function App() {
         <button className="pet-button" aria-label="Open Claude. Drag to move Crawde." {...position.handlers} onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) { e.preventDefault(); activatePet(); } }}>
           <Sprite animation={position.running && behavior.animation === 'idle' ? 'run' : behavior.animation} scale={preferences.scale} reducedMotion={behavior.reduced} facing={position.facing} onComplete={behavior.complete} />
         </button>
-        <UsageRings usage={activity.usage} />
       </div>
+      <UsageRings usage={activity.usage} />
     </div>
     {!native && <aside className="preview-label">Crawde · browser preview <button className="icon-button" title="Preview settings" onClick={() => location.search = '?settings&demo'}><Gear size={16} /></button></aside>}
   </main>;

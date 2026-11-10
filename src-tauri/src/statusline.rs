@@ -1,5 +1,9 @@
 use serde_json::Value;
-use std::{fs::File, io::Read, path::Path};
+use std::{
+    fs::File,
+    io::{Read, Seek, SeekFrom},
+    path::Path,
+};
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -72,11 +76,57 @@ fn usage_in(directory: &Path) -> Option<Usage> {
     })
 }
 
-pub fn context_pct(session_id: &str) -> Option<u8> {
+fn tokens_in(line: &str) -> Option<(u64, bool)> {
+    let value: Value = serde_json::from_str(line).ok()?;
+    if value.get("type")?.as_str()? != "assistant"
+        || value.get("isSidechain").and_then(Value::as_bool) == Some(true)
+    {
+        return None;
+    }
+    let usage = value.get("message")?.get("usage")?;
+    let sum: u64 = [
+        "input_tokens",
+        "cache_creation_input_tokens",
+        "cache_read_input_tokens",
+    ]
+    .iter()
+    .filter_map(|key| usage.get(*key).and_then(Value::as_u64))
+    .sum();
+    let large = value
+        .get("message")?
+        .get("model")
+        .and_then(Value::as_str)
+        .is_some_and(|model| model.contains("-5-"));
+    (sum > 0).then_some((sum, large))
+}
+
+fn transcript_percent(path: &Path) -> Option<u8> {
+    let mut file = File::open(path).ok()?;
+    let length = file.metadata().ok()?.len();
+    file.seek(SeekFrom::Start(length.saturating_sub(262_144)))
+        .ok()?;
+    let mut tail = Vec::new();
+    file.take(262_144).read_to_end(&mut tail).ok()?;
+    let tail = String::from_utf8_lossy(&tail);
+    let (tokens, large) = tail.lines().rev().find_map(tokens_in)?;
+    let window = if large || tokens > 200_000 {
+        1_000_000.0
+    } else {
+        200_000.0
+    };
+    Some(percent(tokens as f64 * 100.0 / window))
+}
+
+pub fn context_pct(session_id: &str, transcript: &str, distro: Option<&str>) -> Option<u8> {
     percent_in(
         &crate::platform::home_dir().join(".crawde/statusline"),
         session_id,
     )
+    .or_else(|| {
+        transcript_percent(&crate::titles::transcript_file(
+            session_id, transcript, distro,
+        )?)
+    })
 }
 
 pub fn usage() -> Option<Usage> {
@@ -145,6 +195,25 @@ mod tests {
         assert_eq!(percent_in(&directory, "../abc-1"), None);
         assert_eq!(percent_in(&directory, "abc/../abc-1"), None);
         assert_eq!(percent_in(&directory, &"a".repeat(129)), None);
+        fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn transcript_tokens_use_last_main_assistant_message() {
+        let lines = [
+            r#"{"type":"assistant","isSidechain":false,"message":{"model":"claude-sonnet-4-5","usage":{"input_tokens":2,"cache_creation_input_tokens":3000,"cache_read_input_tokens":97000}}}"#,
+            r#"{"type":"assistant","isSidechain":true,"message":{"usage":{"input_tokens":999999}}}"#,
+            r#"{"type":"user","message":{"content":"hi"}}"#,
+        ]
+        .join("\n");
+        assert_eq!(
+            lines.lines().rev().find_map(tokens_in),
+            Some((100_002, false))
+        );
+        let directory = scratch();
+        let file = directory.join("s.jsonl");
+        fs::write(&file, lines).unwrap();
+        assert_eq!(transcript_percent(&file), Some(50));
         fs::remove_dir_all(directory).unwrap();
     }
 

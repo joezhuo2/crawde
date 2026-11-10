@@ -139,8 +139,13 @@ pub fn start(app: AppHandle) -> Result<(), String> {
                                 let title = crate::titles::read_title(
                                     &event.session_id,
                                     &event.transcript_path,
+                                    event.wsl_distro.as_deref(),
                                 );
-                                let context_pct = crate::statusline::context_pct(&event.session_id);
+                                let context_pct = crate::statusline::context_pct(
+                                    &event.session_id,
+                                    &event.transcript_path,
+                                    event.wsl_distro.as_deref(),
+                                );
                                 let usage = crate::statusline::usage();
                                 let session_id = event.session_id.clone();
                                 let state = app.state::<AppState>();

@@ -28,8 +28,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .chat-details { display: block; max-height: 0; padding-top: 0; opacity: 0; overflow: hidden; transition: max-height 560ms, padding-top 560ms, opacity 280ms; }
 .chat-activity, .chat-meta { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12px; line-height: 18px; }
 .chat-meta { font-size: 11px; }
-.chat-ctx { position: absolute; right: 14px; top: 26px; font-size: 11px; line-height: 12px; color: var(--muted); white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 280ms, top 560ms cubic-bezier(.22,.68,.2,1); }
-.expanded .chat-ctx { top: 88px; opacity: 1; }
+.chat-ctx { position: absolute; right: 11px; top: 23px; font-size: 11px; line-height: 18px; color: var(--muted); white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 280ms, top 560ms cubic-bezier(.22,.68,.2,1); }
+.expanded .chat-ctx { top: 70px; opacity: 1; }
 .chat-ctx.warn { color: var(--ctx-warn); }
 .chat-ctx.high { color: var(--ctx-high); }
 .chat-bubble.working .chat-activity, .chat-bubble.working .chat-meta { --shine: var(--ink); color: transparent; background-image: linear-gradient(90deg, var(--muted) 0%, var(--muted) 35%, var(--shine) 50%, var(--muted) 65%, var(--muted) 100%); background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; animation: subtitle-wave 2s linear infinite; }
@@ -70,7 +70,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .usage-dial { position: relative; display: grid; place-items: center; width: 22px; height: 22px; }
 .usage-dial svg { position: absolute; inset: 0; fill: none; }
 .usage-track { stroke: var(--line); }
-.usage-arc { stroke: currentColor; transition: stroke-dasharray 400ms ease, stroke 400ms ease; }
+.usage-arc { stroke: currentColor; }
 .usage-label { position: relative; font-size: 8px; line-height: 8px; font-weight: 700; color: var(--ink); }
 .usage-tip { position: absolute; left: 0; bottom: calc(100% + 4px); width: max-content; max-width: 190px; padding: 6px 9px; font-size: 11px; line-height: 15px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 120ms; z-index: 3; }
 .usage-ring:hover .usage-tip, .usage-ring:focus-visible .usage-tip { opacity: 1; visibility: visible; }

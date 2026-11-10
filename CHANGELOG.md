@@ -4,6 +4,7 @@
 
 - Context % on chat cards now also works for Claude desktop Code tab sessions: when no statusLine data exists, it is estimated from the last assistant usage in the session transcript.
 - Usage rings are now static: they stay centered under the crab instead of walking with it, and their arcs no longer animate.
+- The `ctx` text now lines up with the close button and the third detail line, and the transcript estimate uses a 1M window for Claude 5 models so it matches Claude Code.
 
 ## 0.2.0 — 2026-11-09
 

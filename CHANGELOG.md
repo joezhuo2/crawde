@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.2 — 2026-11-10
+
+- Fixed the scroll bar flashing on chat cards while the hover expand/collapse animation plays (#51).
+- Fixed the `ctx` text sitting slightly above the third detail line; card content is now top-aligned so it lines up with the close button and third line (#52).
+
 ## 0.2.1 — 2026-11-09
 
 - Context % on chat cards now also works for Claude desktop Code tab sessions: when no statusLine data exists, it is estimated from the last assistant usage in the session transcript.

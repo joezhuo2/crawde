@@ -76,7 +76,7 @@ fn usage_in(directory: &Path) -> Option<Usage> {
     })
 }
 
-fn tokens_in(line: &str) -> Option<u64> {
+fn tokens_in(line: &str) -> Option<(u64, bool)> {
     let value: Value = serde_json::from_str(line).ok()?;
     if value.get("type")?.as_str()? != "assistant"
         || value.get("isSidechain").and_then(Value::as_bool) == Some(true)
@@ -92,7 +92,12 @@ fn tokens_in(line: &str) -> Option<u64> {
     .iter()
     .filter_map(|key| usage.get(*key).and_then(Value::as_u64))
     .sum();
-    (sum > 0).then_some(sum)
+    let large = value
+        .get("message")?
+        .get("model")
+        .and_then(Value::as_str)
+        .is_some_and(|model| model.contains("-5-"));
+    (sum > 0).then_some((sum, large))
 }
 
 fn transcript_percent(path: &Path) -> Option<u8> {
@@ -103,8 +108,8 @@ fn transcript_percent(path: &Path) -> Option<u8> {
     let mut tail = Vec::new();
     file.take(262_144).read_to_end(&mut tail).ok()?;
     let tail = String::from_utf8_lossy(&tail);
-    let tokens = tail.lines().rev().find_map(tokens_in)?;
-    let window = if tokens > 200_000 {
+    let (tokens, large) = tail.lines().rev().find_map(tokens_in)?;
+    let window = if large || tokens > 200_000 {
         1_000_000.0
     } else {
         200_000.0
@@ -192,12 +197,15 @@ mod tests {
     #[test]
     fn transcript_tokens_use_last_main_assistant_message() {
         let lines = [
-            r#"{"type":"assistant","isSidechain":false,"message":{"usage":{"input_tokens":2,"cache_creation_input_tokens":3000,"cache_read_input_tokens":97000}}}"#,
+            r#"{"type":"assistant","isSidechain":false,"message":{"model":"claude-sonnet-4-5","usage":{"input_tokens":2,"cache_creation_input_tokens":3000,"cache_read_input_tokens":97000}}}"#,
             r#"{"type":"assistant","isSidechain":true,"message":{"usage":{"input_tokens":999999}}}"#,
             r#"{"type":"user","message":{"content":"hi"}}"#,
         ]
         .join("\n");
-        assert_eq!(lines.lines().rev().find_map(tokens_in), Some(100_002));
+        assert_eq!(
+            lines.lines().rev().find_map(tokens_in),
+            Some((100_002, false))
+        );
         let directory = scratch();
         let file = directory.join("s.jsonl");
         fs::write(&file, lines).unwrap();

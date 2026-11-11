@@ -214,6 +214,9 @@ impl Activity {
             }
             return Ok(());
         }
+        if event.hook_event_name == "SessionStart" && !self.sessions.contains_key(&id) {
+            return Ok(());
+        }
         // Bound memory even if a local producer sends many sessions.
         if !self.sessions.contains_key(&id) && self.sessions.len() >= 100 {
             if let Some(oldest) = self
@@ -371,6 +374,12 @@ mod tests {
             serde_json::json!({"session_id":"test-1", "hook_event_name":name,"cwd":"C:\\project"}),
         )
         .unwrap()
+    }
+    #[test]
+    fn session_start_alone_creates_no_card() {
+        let mut state = Activity::default();
+        state.apply(event("SessionStart"), 1).unwrap();
+        assert!(state.visible(2).is_empty());
     }
     #[test]
     fn wsl_events_preserve_linux_context_and_wake_the_pet() {

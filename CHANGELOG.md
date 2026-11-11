@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.3 — 2026-11-11
+
+- Fixed empty "Getting ready" chat cards appearing when a session is opened but no prompt is entered; cards now appear on the first prompt or tool use (#54).
+
 ## 0.2.2 — 2026-11-10
 
 - Fixed the scroll bar flashing on chat cards while the hover expand/collapse animation plays (#51).

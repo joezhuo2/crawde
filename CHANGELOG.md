@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.4 — 2026-11-11
+
+- Fixed clicking a chat card for a conversation that is still open showing a "could not open this conversation" error; it now opens the conversation in Claude Desktop (#56).
+
 ## 0.2.3 — 2026-11-11
 
 - Fixed empty "Getting ready" chat cards appearing when a session is opened but no prompt is entered; cards now appear on the first prompt or tool use (#54).

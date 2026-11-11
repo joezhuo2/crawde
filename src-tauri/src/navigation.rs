@@ -304,17 +304,27 @@ pub async fn open_chat(
         let executable = claude_exe()?;
         let desktop_project = project.clone();
         let desktop_id = id.clone();
-        tauri::async_runtime::spawn_blocking(move || {
+        let handoff = tauri::async_runtime::spawn_blocking(move || {
             launch_desktop(&executable, &desktop_project, &desktop_id)
         })
         .await
-        .map_err(|e| e.to_string())??;
+        .map_err(|e| e.to_string())?;
+        if let Err(error) = handoff {
+            app.opener()
+                .open_url(resume_url(&id), None::<&str>)
+                .map_err(|_| error)?;
+        }
     }
     let mut navigation = state.navigation.lock().map_err(|e| e.to_string())?;
     navigation.current_project = Some(project);
     navigation.current_distro = None;
-    let _ = app;
     Ok(())
+}
+
+fn resume_url(id: &str) -> String {
+    let mut url = url::Url::parse("claude://resume").expect("constant URL");
+    url.query_pairs_mut().append_pair("session", id);
+    url.into()
 }
 
 pub fn new_code_url(project: Option<&PathBuf>) -> String {
@@ -475,5 +485,13 @@ mod tests {
             path.to_string_lossy()
         );
         assert_eq!(new_code_url(None), "claude://code/new");
+    }
+
+    #[test]
+    fn resume_link_targets_the_selected_session() {
+        assert_eq!(
+            resume_url("ae91279c-8e58-46ae-a9da-5fb294c4276f"),
+            "claude://resume?session=ae91279c-8e58-46ae-a9da-5fb294c4276f"
+        );
     }
 }

@@ -1,6 +1,9 @@
 mod activity;
 mod bridge;
+mod diagnostics;
+mod focus;
 mod lifecycle;
+mod log;
 mod navigation;
 mod notifications;
 mod platform;
@@ -11,7 +14,7 @@ mod titles;
 mod updates;
 mod wsl;
 
-pub use bridge::forward_hook;
+pub use bridge::{cli, forward_hook};
 use std::sync::Mutex;
 use tauri::{Manager, State};
 
@@ -35,6 +38,7 @@ struct AppState {
 struct Snapshot {
     sessions: Vec<activity::Session>,
     hooks_installed: bool,
+    hooks_stale: Option<String>,
     bridge_error: Option<String>,
     dock_right: bool,
     dock_top: bool,
@@ -50,7 +54,7 @@ struct Snapshot {
 }
 
 #[tauri::command]
-fn snapshot(state: State<AppState>) -> Result<Snapshot, String> {
+fn snapshot(app: tauri::AppHandle, state: State<AppState>) -> Result<Snapshot, String> {
     let (dock_right, dock_top, pet_x, pet_y) = {
         let position = state.position.lock().map_err(|e| e.to_string())?;
         (position.right, position.top, position.pet_x, position.pet_y)
@@ -73,6 +77,7 @@ fn snapshot(state: State<AppState>) -> Result<Snapshot, String> {
         update: state.update.lock().map_err(|e| e.to_string())?.clone(),
         usage: state.usage.lock().map_err(|e| e.to_string())?.clone(),
         hooks_installed: bridge::installed(),
+        hooks_stale: bridge::stale_reason(&app),
         bridge_error: state
             .bridge_error
             .lock()
@@ -113,6 +118,11 @@ fn restore_chats(state: State<AppState>) -> Result<(), String> {
 }
 
 pub fn run() {
+    log::install_panic_hook();
+    log::record(
+        "INFO",
+        format!("Crawde {} started", env!("CARGO_PKG_VERSION")),
+    );
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _| {
             updates::check_on_launch(app);
@@ -130,11 +140,13 @@ pub fn run() {
         )
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(AppState::default())
         .setup(|app| {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             if let Err(error) = bridge::start(app.handle().clone()) {
+                log::record("ERROR", &error);
                 *app.state::<AppState>().bridge_error.lock().unwrap() = Some(error);
             }
             position::initialize(app.handle())?;
@@ -161,6 +173,11 @@ pub fn run() {
             preferences::save_preferences,
             preferences::update_preference,
             notifications::test_sound,
+            notifications::pick_sound,
+            diagnostics::run_diagnostics,
+            log::read_logs,
+            log::log_message,
+            log::open_log_folder,
             navigation::open_chat,
             navigation::open_claude,
             navigation::new_chat,

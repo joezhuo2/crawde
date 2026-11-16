@@ -17,7 +17,7 @@ pub fn quiet_command() -> Command {
 }
 
 #[cfg(windows)]
-fn output(mut command: Command, input: Option<&[u8]>) -> Result<Vec<u8>, String> {
+pub fn output(mut command: Command, input: Option<&[u8]>) -> Result<Vec<u8>, String> {
     let mut child = command
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -56,26 +56,34 @@ fn output(mut command: Command, input: Option<&[u8]>) -> Result<Vec<u8>, String>
 }
 
 #[cfg(windows)]
-pub fn configure(executable: &str, install: bool, events: &[&str]) -> Result<(), String> {
+pub fn distros() -> Option<Vec<String>> {
     let mut list = quiet_command();
     list.args(["--list", "--quiet"]);
-    let bytes = match output(list, None) {
-        Ok(bytes) => bytes,
-        // WSL is optional on Windows machines.
-        Err(_) => return Ok(()),
-    };
+    let bytes = output(list, None).ok()?;
     let names = String::from_utf16_lossy(
         &bytes
             .chunks_exact(2)
             .map(|b| u16::from_le_bytes([b[0], b[1]]))
             .collect::<Vec<_>>(),
     );
+    Some(
+        names
+            .lines()
+            .map(|s| s.trim().trim_matches('\0').to_string())
+            .filter(|s| !s.is_empty() && !s.starts_with("docker-desktop"))
+            .collect(),
+    )
+}
+
+#[cfg(windows)]
+pub fn configure(executable: &str, install: bool, events: &[&str]) -> Result<(), String> {
+    // WSL is optional on Windows machines.
+    let Some(distros) = distros() else {
+        return Ok(());
+    };
     let mut failures = Vec::new();
-    for distro in names
-        .lines()
-        .map(str::trim)
-        .filter(|s| !s.is_empty() && !s.starts_with("docker-desktop"))
-    {
+    for distro in &distros {
+        let distro = distro.as_str();
         let mut command = quiet_command();
         command.args([
             "--distribution",

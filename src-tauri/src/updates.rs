@@ -251,6 +251,7 @@ pub fn start(app: &AppHandle, install_latest: bool) {
             check_updates(app.clone()).await.map(|_| ())
         };
         if let Err(error) = result {
+            crate::log::record("ERROR", format!("Update failed: {error}"));
             status(&app, error, None, false);
         }
         app.state::<crate::AppState>()

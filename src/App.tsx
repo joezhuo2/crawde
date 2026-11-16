@@ -35,7 +35,7 @@ export function App() {
   useEffect(() => { document.documentElement.dataset.theme = preferences.theme; document.documentElement.dataset.reduced = String(behavior.reduced); }, [preferences.theme, behavior.reduced]);
   const act = async (name: string, args?: Record<string, unknown>) => {
     setDismissedNotice(null);
-    try { await command(name, args); setNotice(''); } catch (error) { setNotice(String(error)); }
+    try { await command(name, args); setNotice(''); } catch (error) { setNotice(String(error)); void command('log_message', { message: `${name}: ${String(error)}` }).catch(() => {}); }
   };
   const activatePet = () => { behavior.ability(); void act('open_claude'); };
   const walkMode = behavior.exploring ? 'exploring' : activity.sessions.some(session => session.status === 'working') ? 'working' : 'idle';
@@ -63,7 +63,7 @@ export function App() {
       setDismissed(current => ({ ...current, [id]: session.lastPromptAt }));
     } catch (error) { setNotice(String(error)); }
   };
-  return <main className={`pet-scene ${expanded ? 'is-expanded' : ''} ${activity.dockRight ? 'dock-right' : ''} ${activity.dockTop ? 'dock-top' : ''} ${hasUsage(activity.usage) ? 'has-rings' : ''}`} aria-label="Crawde desktop companion"
+  return <main className={`pet-scene ${expanded ? 'is-expanded' : ''} ${activity.dockRight ? 'dock-right' : ''} ${activity.dockTop ? 'dock-top' : ''} ${hasUsage(activity.usage) ? 'has-rings' : ''} ${preferences.ghost ? 'ghost' : ''}`} aria-label="Crawde desktop companion"
     style={{ '--pet-x': `${activity.petX ?? 16}px`, '--pet-y': activity.petY == null ? `calc(100% - ${24 * preferences.scale + 6}px)` : `${activity.petY}px`, '--pet-width': `${32 * preferences.scale}px`, '--pet-height': `${24 * preferences.scale}px` } as React.CSSProperties}
     onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
     onContextMenu={event => { event.preventDefault(); void act('show_context_menu'); }}>
@@ -71,6 +71,7 @@ export function App() {
     <ChatBubbles sessions={sessions} expanded={expanded} pinned={pinned} onPin={() => setPinned(p => !p)} onOpen={id => void act('open_chat', { id })} onDismiss={id => void dismissChat(id)} />
     {expanded && currentNotice && currentNotice !== dismissedNotice && <div className="notice" role="status"><span>{currentNotice}</span><button className="icon-button notice-close" aria-label="Dismiss notification" onClick={() => setDismissedNotice(currentNotice)}><X size={14} weight="bold" /></button></div>}
     {expanded && !activity.hooksInstalled && native && <button className="connect-bubble" onClick={() => void act('configure_hooks', { install: true })}>Connect to Claude Code <span>Enable activity hooks</span></button>}
+    {expanded && activity.hooksInstalled && activity.hooksStale && native && <button className="connect-bubble" onClick={() => void act('configure_hooks', { install: true })}>Reconnect to Claude Code <span>Hooks need reinstalling: {activity.hooksStale}</span></button>}
     </div>
     <div className="pet-anchor">
       <div ref={position.petRef} className="pet-body">

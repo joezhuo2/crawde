@@ -21,6 +21,16 @@ pub struct Preferences {
     pub error_sound: bool,
     pub reminders: bool,
     pub open_target: String,
+    pub quiet_hours: bool,
+    pub quiet_start: String,
+    pub quiet_end: String,
+    pub follow_focus_assist: bool,
+    pub ghost: bool,
+    pub ghost_hotkey: String,
+    pub hide_in_fullscreen: bool,
+    pub approval_sound_file: String,
+    pub completion_sound_file: String,
+    pub error_sound_file: String,
 }
 
 impl Default for Preferences {
@@ -41,6 +51,16 @@ impl Default for Preferences {
             error_sound: true,
             reminders: true,
             open_target: "desktop".into(),
+            quiet_hours: false,
+            quiet_start: "22:00".into(),
+            quiet_end: "08:00".into(),
+            follow_focus_assist: true,
+            ghost: false,
+            ghost_hotkey: "Ctrl+Alt+G".into(),
+            hide_in_fullscreen: true,
+            approval_sound_file: String::new(),
+            completion_sound_file: String::new(),
+            error_sound_file: String::new(),
         }
     }
 }
@@ -77,22 +97,47 @@ pub fn save_preferences(app: AppHandle, preferences: Preferences) -> Result<(), 
     {
         return Err("Invalid preference value".into());
     }
-    preferences
+    for file in [
+        &preferences.approval_sound_file,
+        &preferences.completion_sound_file,
+        &preferences.error_sound_file,
+    ] {
+        if !file.is_empty() && !valid_sound_file(file) {
+            return Err("Sound files must be existing .wav or .mp3 files".into());
+        }
+    }
+    let main = preferences
         .hotkey
         .parse::<Shortcut>()
         .map_err(|e| format!("Invalid shortcut: {e}"))?;
+    if !preferences.ghost_hotkey.is_empty() {
+        let ghost = preferences
+            .ghost_hotkey
+            .parse::<Shortcut>()
+            .map_err(|e| format!("Invalid ghost mode shortcut: {e}"))?;
+        if ghost.id() == main.id() {
+            return Err("Ghost mode needs a different shortcut".into());
+        }
+    }
+    if crate::focus::parse_hm(&preferences.quiet_start).is_none()
+        || crate::focus::parse_hm(&preferences.quiet_end).is_none()
+    {
+        return Err("Quiet hours use HH:MM times".into());
+    }
     let state = app.state::<crate::AppState>();
     let previous = state.preferences.lock().map_err(|e| e.to_string())?.clone();
-    if previous.hotkey != preferences.hotkey {
-        app.global_shortcut()
-            .on_shortcut(preferences.hotkey.as_str(), |app, _, event| {
-                if event.state == ShortcutState::Pressed {
-                    let _ = crate::lifecycle::toggle(app);
-                }
-            })
+    let main_changed = previous.hotkey != preferences.hotkey;
+    let ghost_changed =
+        previous.ghost_hotkey != preferences.ghost_hotkey && !preferences.ghost_hotkey.is_empty();
+    if main_changed {
+        bind(&app, &preferences.hotkey, toggle_visibility)
             .map_err(|e| format!("Shortcut is unavailable: {e}"))?;
     }
     let apply = || -> Result<(), String> {
+        if ghost_changed {
+            bind(&app, &preferences.ghost_hotkey, toggle_ghost)
+                .map_err(|e| format!("Ghost mode shortcut is unavailable: {e}"))?;
+        }
         if previous.startup != preferences.startup {
             if preferences.startup {
                 app.autolaunch().enable()
@@ -104,10 +149,15 @@ pub fn save_preferences(app: AppHandle, preferences: Preferences) -> Result<(), 
         persist(&app, &preferences)
     };
     if let Err(error) = apply() {
-        if previous.hotkey != preferences.hotkey {
+        if main_changed {
             let _ = app
                 .global_shortcut()
                 .unregister(preferences.hotkey.as_str());
+        }
+        if ghost_changed {
+            let _ = app
+                .global_shortcut()
+                .unregister(preferences.ghost_hotkey.as_str());
         }
         if previous.startup != preferences.startup {
             if previous.startup {
@@ -118,8 +168,13 @@ pub fn save_preferences(app: AppHandle, preferences: Preferences) -> Result<(), 
         }
         return Err(error);
     }
-    if previous.hotkey != preferences.hotkey {
+    if main_changed {
         let _ = app.global_shortcut().unregister(previous.hotkey.as_str());
+    }
+    if previous.ghost_hotkey != preferences.ghost_hotkey && !previous.ghost_hotkey.is_empty() {
+        let _ = app
+            .global_shortcut()
+            .unregister(previous.ghost_hotkey.as_str());
     }
     if previous.enabled != preferences.enabled {
         crate::lifecycle::set_pet_visible(&app, preferences.enabled)?;
@@ -127,6 +182,41 @@ pub fn save_preferences(app: AppHandle, preferences: Preferences) -> Result<(), 
     *state.preferences.lock().map_err(|e| e.to_string())? = preferences;
     crate::lifecycle::refresh_menu(&app);
     Ok(())
+}
+
+pub fn valid_sound_file(path: &str) -> bool {
+    let path_ref = std::path::Path::new(path);
+    !path.contains('"')
+        && path_ref.is_absolute()
+        && path_ref
+            .extension()
+            .and_then(|e| e.to_str())
+            .is_some_and(|e| e.eq_ignore_ascii_case("wav") || e.eq_ignore_ascii_case("mp3"))
+        && path_ref.is_file()
+}
+
+pub fn bind(app: &AppHandle, shortcut: &str, action: fn(&AppHandle)) -> Result<(), String> {
+    app.global_shortcut()
+        .on_shortcut(shortcut, move |app, _, event| {
+            if event.state == ShortcutState::Pressed {
+                action(app);
+            }
+        })
+        .map_err(|e| e.to_string())
+}
+
+pub fn toggle_visibility(app: &AppHandle) {
+    let _ = crate::lifecycle::toggle(app);
+}
+
+pub fn toggle_ghost(app: &AppHandle) {
+    let ghost = app
+        .state::<crate::AppState>()
+        .preferences
+        .lock()
+        .map(|p| p.ghost)
+        .unwrap_or(false);
+    let _ = update_preference(app.clone(), "ghost".into(), serde_json::json!(!ghost));
 }
 
 // Merge one edited field with current native state so tray changes are preserved.

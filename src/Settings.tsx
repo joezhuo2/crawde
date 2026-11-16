@@ -23,7 +23,10 @@ export function Settings() {
   const preferences = draft ?? defaults;
   const pending = useRef(new Map<keyof Preferences, { value: Preferences[keyof Preferences] }>());
   const [saving, setSaving] = useState(0);
-  const [hotkey, setHotkey] = useState<string | null>(null);
+  const [checks, setChecks] = useState<{ name: string; status: 'pass' | 'warn' | 'fail'; detail: string }[] | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [logs, setLogs] = useState<string | null>(null);
+  const [shortcutDraft, setShortcutDraft] = useState<Partial<Record<'hotkey' | 'ghostHotkey' | 'quietStart' | 'quietEnd', string>>>({});
   useEffect(() => {
     if (!activity.preferences) return;
     const next = { ...activity.preferences };
@@ -54,6 +57,32 @@ export function Settings() {
     try { await command(name, args); setMessage(success ?? ''); } catch (error) { setMessage(String(error)); }
   };
 
+  const textInput = (key: keyof typeof shortcutDraft, label: string, placeholder: string) => <input className="hotkey-input" aria-label={label} value={shortcutDraft[key] ?? preferences[key]} onChange={e => setShortcutDraft(d => ({ ...d, [key]: e.target.value }))} onBlur={e => { if (shortcutDraft[key] !== undefined) set(key, e.target.value.trim()); setShortcutDraft(d => { const next = { ...d }; delete next[key]; return next; }); }} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }} placeholder={placeholder} spellCheck={false} />;
+
+  const diagnose = async () => {
+    setChecking(true);
+    try { setChecks(await command('run_diagnostics')); } catch (error) { setMessage(String(error)); } finally { setChecking(false); }
+  };
+  const loadLogs = async () => { try { const text = await command<string>('read_logs'); setLogs(text || 'No log entries yet.'); return text; } catch (error) { setMessage(String(error)); return ''; } };
+  const copyLogs = async () => {
+    const text = await loadLogs();
+    const report = `Crawde ${version} · ${navigator.userAgent}
+
+${text}`;
+    try { await navigator.clipboard.writeText(report); setMessage('Logs copied. Your home folder is shown as ~.'); } catch { setMessage('Could not copy; select the log text below instead.'); }
+  };
+
+  const soundFile = (key: 'approvalSoundFile' | 'completionSoundFile' | 'errorSoundFile', kind: string) => {
+    const file = preferences[key];
+    const choose = async () => { try { const path = await command<string | null>('pick_sound'); if (path) set(key, path); } catch (error) { setMessage(String(error)); } };
+    return <div className="sound-file">
+      <span title={file || undefined}>{file ? file.split(/[\\/]/).pop() : `Built-in ${preferences.soundStyle} tone`}</span>
+      <button type="button" className="text-button" onClick={() => void choose()}>Choose…</button>
+      {file && <button type="button" className="text-button" onClick={() => set(key, '')}>Reset</button>}
+      <button type="button" className="text-button" onClick={() => void act('test_sound', { preferences, kind })}>Test</button>
+    </div>;
+  };
+
   if (!draft || new URLSearchParams(location.search).has('loading')) return <SettingsSkeleton error={activity.connectionError} />;
 
   return <main className="settings-shell">
@@ -67,7 +96,10 @@ export function Settings() {
           {!native && <p className="settings-note" role="status">Browser preview. Desktop visibility and saving are available in the Crawde Windows app.</p>}
           <h2>Your companion</h2>
           <Toggle label="Show Crawde" detail="Tray click or hotkey toggles visibility." checked={preferences.enabled} disabled={!native} onChange={v => set('enabled', v)} />
-          <Field label="Show / hide shortcut"><input className="hotkey-input" aria-label="Global hotkey" value={hotkey ?? preferences.hotkey} onChange={e => setHotkey(e.target.value)} onBlur={e => { if (hotkey !== null) set('hotkey', e.target.value); setHotkey(null); }} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }} placeholder="Ctrl+Alt+P" spellCheck={false} /></Field>
+          <Field label="Show / hide shortcut">{textInput('hotkey', 'Global hotkey', 'Ctrl+Alt+P')}</Field>
+          <Toggle label="Ghost mode" detail="See-through and click-through. Use the tray menu or shortcut to turn it off." checked={preferences.ghost} onChange={v => set('ghost', v)} />
+          <Field label="Ghost mode shortcut">{textInput('ghostHotkey', 'Ghost mode hotkey', 'Ctrl+Alt+G')}</Field>
+          <Toggle label="Hide in fullscreen apps" detail="Games, videos, and presentations. Ghost mode keeps Crawde visible instead." checked={preferences.hideInFullscreen} onChange={v => set('hideInFullscreen', v)} />
           <Field label="Appearance"><select value={preferences.theme} onChange={e => set('theme', e.target.value as Preferences['theme'])}><option value="system">Follow system</option><option value="light">Light</option><option value="dark">Dark</option></select></Field>
           <Field label="Pet size"><select value={preferences.scale} onChange={e => set('scale', Number(e.target.value))}><option value={2}>Small · 2× pixels</option><option value={3}>Medium · 3× pixels</option><option value={4}>Large · 4× pixels</option></select></Field>
           <p className="settings-note">Drag Crawde to move it. Positions are remembered per monitor. It sleeps after 10 minutes without a prompt, or when Claude closes.</p>
@@ -77,20 +109,29 @@ export function Settings() {
           <Field label="Volume"><input aria-label="Sound volume" type="range" min="0" max="1" step="0.05" value={preferences.volume} onChange={e => set('volume', Number(e.target.value))} /></Field>
           <Field label="Sound style"><select value={preferences.soundStyle} onChange={e => set('soundStyle', e.target.value as Preferences['soundStyle'])}><option value="soft">Soft tones</option><option value="retro">Retro game</option></select></Field>
           <Toggle label="Needs approval" checked={preferences.approvalSound} onChange={v => set('approvalSound', v)} />
+          {soundFile('approvalSoundFile', 'approval')}
           <Toggle label="Finished a response" checked={preferences.completionSound} onChange={v => set('completionSound', v)} />
+          {soundFile('completionSoundFile', 'done')}
           <Toggle label="Errors" checked={preferences.errorSound} onChange={v => set('errorSound', v)} />
+          {soundFile('errorSoundFile', 'error')}
           <Toggle label="Approval reminders" detail="A quiet reminder every 45 seconds." checked={preferences.reminders} onChange={v => set('reminders', v)} />
-          <button type="button" className="secondary-button" onClick={() => void act('test_sound', { preferences })}>Test sound</button>
+          <h2>Do not disturb</h2>
+          <Toggle label="Follow Windows Do not disturb" detail="Mute sounds and reminders while Focus Assist or Do not disturb is on." checked={preferences.followFocusAssist} onChange={v => set('followFocusAssist', v)} />
+          <Toggle label="Quiet hours" detail="Mute sounds and reminders during a daily window. Cards still update." checked={preferences.quietHours} onChange={v => set('quietHours', v)} />
+          {preferences.quietHours && <Field label="From · until"><span className="time-range">{textInput('quietStart', 'Quiet hours start', '22:00')}{textInput('quietEnd', 'Quiet hours end', '08:00')}</span></Field>}
         </>}
         {tab === 'claude' && <>
           <h2>Connected to your work</h2>
           <div className={`connection-status ${activity.hooksInstalled ? 'connected' : ''}`}><Check size={17} />{activity.hooksInstalled ? 'Claude Code hooks installed' : 'Activity hooks are not connected'}</div>
+          {activity.hooksInstalled && activity.hooksStale && <p className="settings-error">Hooks need reinstalling: {activity.hooksStale}. Choose Reinstall activity hooks from the right-click menu.</p>}
           {activity.hooksInstalled && <p className="settings-note" role="status">{activity.lastEventAt ? `Activity received ${Math.max(0, Math.floor((Date.now() - activity.lastEventAt) / 1000))} seconds ago.` : 'No activity received yet. Start a new Claude Code session after connecting hooks.'}</p>}
           <p className="settings-note">Supports Claude Code in your terminal and the Code tab in Claude Desktop. Crawde observes activity and leaves every approval to you.</p>
           <p className="settings-note">Right-click Crawde or its tray icon to install, reinstall, or disconnect activity hooks.</p>
           <Field label="Open chats in"><select value={preferences.openTarget} onChange={e => set('openTarget', e.target.value as Preferences['openTarget'])}><option value="desktop">Claude Desktop</option><option value="terminal">Windows Terminal</option></select></Field>
           <p className="settings-note">New chat uses the most recently active project. A clicked conversation becomes the current project.</p>
           {activity.bridgeError && <p className="settings-error">{activity.bridgeError}</p>}
+          <button type="button" className="secondary-button" disabled={checking} onClick={() => void diagnose()}>{checking ? 'Checking…' : 'Run diagnostics'}</button>
+          {checks && <ul className="diagnostics" aria-label="Diagnostic results">{checks.map(c => <li key={c.name} className={c.status}><span aria-label={c.status}>{c.status === 'pass' ? '✓' : c.status === 'warn' ? '!' : '✗'}</span><span><b>{c.name}</b><small>{c.detail}</small></span></li>)}</ul>}
         </>}
         {tab === 'about' && <>
           <h2>Small crab. Big company.</h2>
@@ -98,6 +139,14 @@ export function Settings() {
           <p className="settings-note">Updates are checked on every launch. Install available updates from the right-click menu; Crawde closes, installs silently, and reopens.</p>
           {activity.update && <p className="settings-note" role="status">{activity.update.message}</p>}
           <button type="button" className="text-button" onClick={() => void act('open_releases')}>View releases <ArrowSquareOut size={14} /></button>
+          <h2>Logs</h2>
+          <p className="settings-note">Errors and crashes are saved on this computer. Copying replaces your home folder with ~.</p>
+          <div className="log-actions">
+            <button type="button" className="secondary-button" onClick={() => logs === null ? void loadLogs() : setLogs(null)}>{logs === null ? 'View logs' : 'Hide logs'}</button>
+            <button type="button" className="secondary-button" onClick={() => void copyLogs()}>Copy for bug report</button>
+            <button type="button" className="text-button" onClick={() => void act('open_log_folder')}>Open folder <ArrowSquareOut size={14} /></button>
+          </div>
+          {logs !== null && <textarea className="log-view" readOnly value={logs} aria-label="Crawde log" onFocus={e => e.currentTarget.select()} />}
         </>}
       </div>
       <footer className="settings-footer"><span role="status">{message || activity.connectionError || (saving ? 'Saving…' : native ? 'Changes save automatically.' : 'Browser preview — changes are not saved.')}</span></footer>

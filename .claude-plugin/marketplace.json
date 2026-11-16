@@ -1,0 +1,11 @@
+{
+  "name": "crawde",
+  "owner": { "name": "joezhuo2" },
+  "plugins": [
+    {
+      "name": "crawde",
+      "source": "./plugin",
+      "description": "Connect Claude Code to the Crawde desktop companion with /crawde."
+    }
+  ]
+}

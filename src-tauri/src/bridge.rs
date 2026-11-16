@@ -42,23 +42,7 @@ pub fn forward_hook() -> Result<(), String> {
     if !token.chars().all(|c| c.is_ascii_hexdigit() || c == '-') {
         return Err("Invalid bridge token".into());
     }
-    let address: SocketAddr = "127.0.0.1:47631".parse().expect("constant address");
-    let timeout = std::time::Duration::from_millis(400);
-    let mut stream = TcpStream::connect_timeout(&address, timeout).map_err(|e| e.to_string())?;
-    stream
-        .set_write_timeout(Some(timeout))
-        .map_err(|e| e.to_string())?;
-    stream
-        .set_read_timeout(Some(timeout))
-        .map_err(|e| e.to_string())?;
-    let header = format!("POST /events HTTP/1.1\r\nHost: 127.0.0.1:47631\r\nAuthorization: Bearer {token}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len());
-    stream
-        .write_all(header.as_bytes())
-        .map_err(|e| e.to_string())?;
-    stream.write_all(&body).map_err(|e| e.to_string())?;
-    let mut response = [0; 128];
-    let length = stream.read(&mut response).map_err(|e| e.to_string())?;
-    if !String::from_utf8_lossy(&response[..length]).starts_with("HTTP/1.1 200") {
+    if !post(&token, &body)?.starts_with("HTTP/1.1 200") {
         return Err("Hook receiver rejected event".into());
     }
     Ok(())
@@ -83,6 +67,37 @@ const EVENTS: &[&str] = &[
     "Elicitation",
 ];
 
+pub fn post(token: &str, body: &[u8]) -> Result<String, String> {
+    let address: SocketAddr = "127.0.0.1:47631".parse().expect("constant address");
+    let timeout = std::time::Duration::from_millis(400);
+    let mut stream = TcpStream::connect_timeout(&address, timeout).map_err(|e| e.to_string())?;
+    stream
+        .set_write_timeout(Some(timeout))
+        .map_err(|e| e.to_string())?;
+    stream
+        .set_read_timeout(Some(timeout))
+        .map_err(|e| e.to_string())?;
+    let header = format!(
+        "POST /events HTTP/1.1
+Host: 127.0.0.1:47631
+Authorization: Bearer {}
+Content-Type: application/json
+Content-Length: {}
+Connection: close
+
+",
+        token,
+        body.len()
+    );
+    stream
+        .write_all(header.as_bytes())
+        .map_err(|e| e.to_string())?;
+    stream.write_all(body).map_err(|e| e.to_string())?;
+    let mut response = [0; 128];
+    let length = stream.read(&mut response).map_err(|e| e.to_string())?;
+    Ok(String::from_utf8_lossy(&response[..length]).into_owned())
+}
+
 pub fn now() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -97,7 +112,10 @@ pub fn config_dir() -> PathBuf {
 }
 
 pub fn token(app: &AppHandle) -> Result<String, String> {
-    let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    token_in(app.path().app_config_dir().map_err(|e| e.to_string())?)
+}
+
+fn token_in(dir: PathBuf) -> Result<String, String> {
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let path = dir.join("bridge-token");
     if path.exists() {
@@ -178,6 +196,12 @@ pub fn start(app: AppHandle) -> Result<(), String> {
                     _ => 413,
                 }
             };
+            if status != 200 {
+                crate::log::record(
+                    "WARN",
+                    format!("Rejected hook request with status {status}"),
+                );
+            }
             // Observational hooks must never return a Claude permission decision.
             if status == 200 {
                 crate::notifications::tick(&app);
@@ -253,6 +277,47 @@ pub fn merge_hooks(
 
 #[tauri::command]
 pub fn configure_hooks(app: AppHandle, install: bool) -> Result<(), String> {
+    configure(&token(&app)?, install)
+}
+
+// Command-line entry for the /crawde plugin command; runs without starting the app.
+pub fn cli(action: &str) -> Result<String, String> {
+    let dir = crate::platform::app_data_dir()
+        .ok_or("Application data directory is unavailable")?
+        .join("com.joezhuo.crawde");
+    let token = token_in(dir)?;
+    match action {
+        "--install-hooks" => {
+            configure(&token, true)?;
+            Ok(
+                "Crawde activity hooks installed. Restart Claude Code sessions to load them."
+                    .into(),
+            )
+        }
+        "--uninstall-hooks" => {
+            configure(&token, false)?;
+            Ok("Crawde activity hooks removed.".into())
+        }
+        _ => {
+            let executable = std::env::current_exe().map_err(|e| e.to_string())?;
+            Ok(
+                match (
+                    installed(),
+                    read_settings()
+                        .and_then(|s| stale_reason_in(&s, &token, &executable.to_string_lossy())),
+                ) {
+                    (false, _) => "Crawde activity hooks are not installed.".into(),
+                    (true, Some(reason)) => {
+                        format!("Crawde activity hooks need reinstalling: {reason}.")
+                    }
+                    (true, None) => "Crawde activity hooks are installed and up to date.".into(),
+                },
+            )
+        }
+    }
+}
+
+fn configure(token: &str, install: bool) -> Result<(), String> {
     let dir = config_dir();
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let path = dir.join("settings.json");
@@ -264,12 +329,7 @@ pub fn configure_hooks(app: AppHandle, install: bool) -> Result<(), String> {
     let mut settings: Value = serde_json::from_str(&contents)
         .map_err(|e| format!("Claude settings were left unchanged: {e}"))?;
     let executable = std::env::current_exe().map_err(|e| e.to_string())?;
-    merge_hooks(
-        &mut settings,
-        &token(&app)?,
-        install,
-        &executable.to_string_lossy(),
-    )?;
+    merge_hooks(&mut settings, token, install, &executable.to_string_lossy())?;
     // Keep an exact backup before every change; never rewrite malformed config.
     if path.exists() {
         fs::copy(&path, dir.join(format!("settings.crawde-{}.bak", now())))
@@ -306,6 +366,59 @@ pub fn installed() -> bool {
         .unwrap_or(false)
 }
 
+pub fn read_settings() -> Option<Value> {
+    fs::read_to_string(config_dir().join("settings.json"))
+        .ok()
+        .and_then(|s| serde_json::from_str::<Value>(&s).ok())
+}
+
+pub fn stale_reason_in(settings: &Value, token: &str, executable: &str) -> Option<String> {
+    let expected = format!("Bearer {token}");
+    let handlers: Vec<&Value> = settings
+        .get("hooks")
+        .and_then(Value::as_object)?
+        .values()
+        .filter_map(Value::as_array)
+        .flatten()
+        .filter_map(|group| group.get("hooks").and_then(Value::as_array))
+        .flatten()
+        .filter(|hook| is_our_handler(hook))
+        .collect();
+    if handlers.is_empty() {
+        return None;
+    }
+    if handlers.iter().any(|hook| {
+        hook.get("url").is_some()
+            && hook
+                .get("headers")
+                .and_then(|h| h.get("Authorization"))
+                .and_then(Value::as_str)
+                != Some(expected.as_str())
+    }) {
+        return Some("the saved access token no longer matches".into());
+    }
+    if !startup_hook_matches(settings, executable) {
+        return Some("they point at a different Crawde install".into());
+    }
+    let missing = EVENTS
+        .iter()
+        .filter(|event| {
+            settings
+                .get("hooks")
+                .and_then(|h| h.get(**event))
+                .and_then(Value::as_array)
+                .is_none_or(|groups| !groups.iter().any(is_ours))
+        })
+        .count();
+    (missing > 0).then(|| format!("{missing} activity events are not connected"))
+}
+
+pub fn stale_reason(app: &AppHandle) -> Option<String> {
+    let token = token(app).ok()?;
+    let executable = std::env::current_exe().ok()?;
+    stale_reason_in(&read_settings()?, &token, &executable.to_string_lossy())
+}
+
 fn startup_hook_matches(settings: &Value, executable: &str) -> bool {
     settings
         .get("hooks")
@@ -340,6 +453,25 @@ pub fn needs_repair() -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn stale_hooks_report_token_path_and_missing_events() {
+        let mut settings = json!({});
+        merge_hooks(&mut settings, "abc", true, "C:/crawde.exe").unwrap();
+        assert_eq!(stale_reason_in(&settings, "abc", "C:/crawde.exe"), None);
+        assert!(stale_reason_in(&settings, "new", "C:/crawde.exe")
+            .unwrap()
+            .contains("token"));
+        assert!(stale_reason_in(&settings, "abc", "D:/other.exe")
+            .unwrap()
+            .contains("different"));
+        settings["hooks"]["Stop"] = json!([]);
+        assert_eq!(
+            stale_reason_in(&settings, "abc", "C:/crawde.exe").as_deref(),
+            Some("1 activity events are not connected")
+        );
+        assert_eq!(stale_reason_in(&json!({}), "abc", "C:/crawde.exe"), None);
+    }
+
     #[test]
     fn install_is_idempotent_and_uninstall_preserves_other_hooks() {
         let mut settings = json!({"theme":"dark","hooks":{"Stop":[{"hooks":[{"type":"command","command":"echo hi"}]}]}});

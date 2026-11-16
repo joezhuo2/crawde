@@ -5,11 +5,11 @@ use tauri::{
     AppHandle, Manager, WebviewUrl, WebviewWindowBuilder,
 };
 use tauri_plugin_autostart::ManagerExt;
-use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
 #[derive(Default)]
 pub struct Lifecycle {
     pub claude_open: bool,
+    pub fullscreen_hidden: bool,
 }
 
 #[tauri::command]
@@ -121,6 +121,8 @@ pub fn context_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         prefs.sound,
         None::<&str>,
     )?;
+    let ghost =
+        CheckMenuItem::with_id(app, "ghost", "Ghost mode", true, prefs.ghost, None::<&str>)?;
     let installed = crate::bridge::installed();
     let hooks = MenuItem::with_id(
         app,
@@ -149,6 +151,7 @@ pub fn context_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
             &startup,
             &walks,
             &sound,
+            &ghost,
             &PredefinedMenuItem::separator(app)?,
             &hooks,
             &disconnect,
@@ -196,12 +199,13 @@ pub fn handle_menu(app: &AppHandle, id: &str) {
             crate::updates::activate(app);
             return;
         }
-        "reducedMotion" | "startup" | "roaming" | "sound" => {
+        "reducedMotion" | "startup" | "roaming" | "sound" | "ghost" => {
             let prefs = app.state::<AppState>().preferences.lock().unwrap().clone();
             let current = match id {
                 "reducedMotion" => prefs.reduced_motion,
                 "startup" => prefs.startup,
                 "roaming" => prefs.roaming,
+                "ghost" => prefs.ghost,
                 _ => prefs.sound,
             };
             preferences::update_preference(app.clone(), id.into(), serde_json::json!(!current))
@@ -212,7 +216,10 @@ pub fn handle_menu(app: &AppHandle, id: &str) {
         _ => return,
     };
     let message = match result {
-        Err(error) => Some(error),
+        Err(error) => {
+            crate::log::record("ERROR", format!("{id}: {error}"));
+            Some(error)
+        }
         Ok(()) if id == "install_hooks" => {
             Some("Hooks installed. Restart existing Claude sessions.".into())
         }
@@ -237,6 +244,7 @@ pub fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     *app.state::<AppState>().preferences.lock().unwrap() = prefs.clone();
     if crate::bridge::installed() && crate::bridge::needs_repair() {
         if let Err(error) = crate::bridge::configure_hooks(app.clone(), true) {
+            crate::log::record("ERROR", format!("Hook repair failed: {error}"));
             *app.state::<AppState>().bridge_error.lock().unwrap() =
                 Some(format!("Activity hooks need reconnecting: {error}"));
         }
@@ -244,18 +252,20 @@ pub fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     if prefs.startup && !cfg!(debug_assertions) {
         app.autolaunch().enable()?;
     }
-    app.global_shortcut()
-        .on_shortcut(prefs.hotkey.as_str(), |app, _, event| {
-            if event.state == ShortcutState::Pressed {
-                let _ = toggle(app);
-            }
-        })?;
+    preferences::bind(app, &prefs.hotkey, preferences::toggle_visibility)?;
+    if !prefs.ghost_hotkey.is_empty() {
+        if let Err(error) = preferences::bind(app, &prefs.ghost_hotkey, preferences::toggle_ghost) {
+            crate::log::record("WARN", format!("Ghost mode shortcut unavailable: {error}"));
+            *app.state::<AppState>().menu_message.lock().unwrap() =
+                Some(format!("Ghost mode shortcut is unavailable: {error}"));
+        }
+    }
     let menu = context_menu(app)?;
     TrayIconBuilder::with_id("crawde")
         .icon(tauri::image::Image::from_bytes(include_bytes!(
             "../icons/tray.png"
         ))?)
-        .tooltip("Crawde · click to show or hide")
+        .tooltip(tooltip(app))
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_tray_icon_event(|tray, event| {
@@ -280,7 +290,44 @@ pub fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         set_pet_visible(app, true)?;
     }
     start_presence(app.clone());
+    crate::focus::start_fullscreen_watch(app.clone());
     Ok(())
+}
+
+pub fn ago(ms: u64) -> String {
+    match ms / 1000 {
+        0..60 => "just now".into(),
+        s @ 60..3600 => format!("{}m ago", s / 60),
+        s @ 3600..86_400 => format!("{}h ago", s / 3600),
+        s => format!("{}d ago", s / 86_400),
+    }
+}
+
+fn tooltip(app: &AppHandle) -> String {
+    let status = if !crate::bridge::installed() {
+        "⚠ Hooks not installed".to_string()
+    } else if let Some(reason) = crate::bridge::stale_reason(app) {
+        format!("⚠ Reinstall hooks: {reason}")
+    } else {
+        let last = app
+            .state::<AppState>()
+            .activity
+            .lock()
+            .map(|a| a.last_event_at)
+            .unwrap_or(0);
+        if last == 0 {
+            "Hooks OK · no events yet".into()
+        } else {
+            format!(
+                "Hooks OK · last event {}",
+                ago(crate::bridge::now().saturating_sub(last))
+            )
+        }
+    };
+    format!(
+        "Crawde · {status}
+Click to show or hide"
+    )
 }
 
 fn start_presence(app: AppHandle) {
@@ -301,9 +348,10 @@ fn start_presence(app: AppHandle) {
             let mut lifecycle = state.lifecycle.lock().unwrap();
             let was_open = lifecycle.claude_open;
             lifecycle.claude_open = open;
+            let fullscreen_hidden = lifecycle.fullscreen_hidden;
             drop(lifecycle);
             let enabled = state.preferences.lock().unwrap().enabled;
-            if open && !was_open && enabled {
+            if open && !was_open && enabled && !fullscreen_hidden {
                 let _ = set_pet_visible(&app, true);
             }
             // Keep the pet sleeping when Claude closes. Recheck monitor topology for docking/reconnection.
@@ -315,6 +363,9 @@ fn start_presence(app: AppHandle) {
                 }
             }
             crate::notifications::tick(&app);
+            if let Some(tray) = app.tray_by_id("crawde") {
+                let _ = tray.set_tooltip(Some(tooltip(&app)));
+            }
             std::thread::sleep(std::time::Duration::from_secs(3));
         }
     });
@@ -329,5 +380,16 @@ pub fn quit(app: AppHandle) {
 pub fn close_settings(app: AppHandle) {
     if let Some(window) = app.get_webview_window("settings") {
         let _ = window.close();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn ages_read_naturally() {
+        assert_eq!(super::ago(59_999), "just now");
+        assert_eq!(super::ago(120_000), "2m ago");
+        assert_eq!(super::ago(7_200_000), "2h ago");
+        assert_eq!(super::ago(172_800_000), "2d ago");
     }
 }

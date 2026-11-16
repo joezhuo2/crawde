@@ -278,7 +278,7 @@ pub fn drag_end(
         )
         .map_err(|e| e.to_string())?;
     }
-    crate::snapshot(state)
+    crate::snapshot(app, state)
 }
 
 #[tauri::command]
@@ -309,14 +309,16 @@ pub fn start_hit_testing(app: AppHandle) {
             let x = (cursor.x - origin.x as f64) / scale;
             let y = (cursor.y - origin.y as f64) / scale;
             let state = app.state::<AppState>();
+            let ghost = state.preferences.lock().is_ok_and(|p| p.ghost);
             let position = state.position.lock().unwrap();
-            let inside = position.drag.is_some()
-                || position.regions.iter().any(|r| {
-                    x >= r.x - 6.0
-                        && y >= r.y - 6.0
-                        && x <= r.x + r.width + 6.0
-                        && y <= r.y + r.height + 6.0
-                });
+            let inside = !ghost && position.drag.is_some()
+                || !ghost
+                    && position.regions.iter().any(|r| {
+                        x >= r.x - 6.0
+                            && y >= r.y - 6.0
+                            && x <= r.x + r.width + 6.0
+                            && y <= r.y + r.height + 6.0
+                    });
             drop(position);
             if ignored == inside {
                 if window.set_ignore_cursor_events(!inside).is_ok() {

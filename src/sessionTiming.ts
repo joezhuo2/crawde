@@ -19,3 +19,14 @@ export function sessionTiming(session: Session, now: number): string {
   parts.push(`active ${formatDuration(now - session.updatedAt)} ago`);
   return parts.join(' · ');
 }
+
+export function toolSummary(session: Session): { text: string; detail: string } {
+  const tools = session.toolCount ?? 0;
+  const files = session.filesEdited?.length ?? 0;
+  const parts: string[] = [];
+  if (tools) parts.push(`${tools} ${tools === 1 ? 'tool' : 'tools'}`);
+  if (files) parts.push(`${files} ${files === 1 ? 'file' : 'files'}`);
+  const breakdown = Object.entries(session.toolCounts ?? {}).sort((a, b) => b[1] - a[1]).map(([name, count]) => `${name} ×${count}`);
+  const detail = [breakdown.join(', '), ...(session.filesEdited ?? [])].filter(Boolean).join('\n');
+  return { text: parts.join(' · '), detail };
+}

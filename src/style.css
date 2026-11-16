@@ -7,6 +7,7 @@ button:disabled { opacity: .35; cursor: default; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .pet-scene { position: relative; width: 350px; height: 100%; user-select: none; --rings-room: 0px; --pet-top: clamp(6px, var(--pet-y), calc(100% - var(--pet-height) - 6px - var(--rings-room))); }
 .pet-scene.has-rings { --rings-room: 34px; }
+.pet-scene.ghost { opacity: .35; transition: opacity 200ms; }
 .chat-stack { position: absolute; left: 12px; right: 12px; bottom: calc(100% - var(--pet-top) + 6px); max-height: max(0px, calc(var(--pet-top) - 14px)); display: flex; flex-direction: column; gap: 6px; overflow-y: auto; scrollbar-width: none; }
 .dock-top .chat-stack { bottom: auto; top: calc(var(--pet-top) + var(--pet-height) + var(--rings-room) + 6px); max-height: max(0px, calc(100% - var(--pet-top) - var(--pet-height) - var(--rings-room) - 14px)); flex-direction: column-reverse; }
 
@@ -16,6 +17,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .bubbles { height: calc(42px + (var(--count) - 1) * 32px); position: relative; transition: height 560ms cubic-bezier(.22,.68,.2,1); }
 .chat-bubble { position: absolute; left: 0; top: 0; width: 100%; height: 42px; min-height: 42px; padding: 11px 14px; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 3px 12px #221c1609; transform: translateY(calc(var(--index) * 32px)) scale(calc(1 - var(--index) * .025)); transform-origin: center bottom; z-index: calc(4 - var(--index)); transition: transform 560ms cubic-bezier(.22,.68,.2,1), height 560ms cubic-bezier(.22,.68,.2,1), background 160ms; }
 .chat-bubble.approval { background: var(--tint); border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.chat-bubble.error { border-color: color-mix(in srgb, var(--ctx-high) 55%, var(--line)); }
+.chat-error { color: var(--ctx-high); }
 .chat-bubble { padding: 0; }
 .chat-open { display: flex; flex-direction: column; justify-content: flex-start; width: 100%; height: 100%; padding: 11px 14px; text-align: left; color: inherit; background: transparent; border: 0; border-radius: inherit; }
 .chat-close { position: absolute; right: 6px; top: 8px; padding: 5px; }
@@ -117,6 +120,18 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .setting-row small { display: block; font-size: 11px; color: var(--muted); line-height: 16px; margin-top: 3px; }
 .setting-row input:not([type='checkbox']):not([type='range']), .setting-row select { border: 1px solid var(--line); border-radius: 6px; background: var(--control); color: var(--ink); padding: 7px 9px; font-size: 11px; max-width: 180px; min-width: 0; }
 .hotkey-input { width: 145px; }
+.time-range { display: flex; gap: 6px; }
+.diagnostics { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; font-size: 12px; }
+.diagnostics li { display: flex; gap: 10px; align-items: flex-start; }
+.diagnostics li > span:first-child { width: 16px; flex-shrink: 0; font-weight: 700; text-align: center; color: var(--ctx-ok); }
+.diagnostics li.warn > span:first-child { color: var(--ctx-warn); }
+.diagnostics li.fail > span:first-child { color: var(--ctx-high); }
+.diagnostics small { display: block; color: var(--muted); overflow-wrap: anywhere; }
+.log-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.log-view { width: 100%; height: 200px; margin-top: 10px; font: 11px/1.45 Consolas, monospace; color: var(--ink); background: var(--control); border: 1px solid var(--line); border-radius: 8px; padding: 8px; resize: vertical; white-space: pre; }
+.sound-file { display: flex; align-items: center; gap: 10px; margin: -4px 0 8px; font-size: 12px; color: var(--muted); }
+.sound-file > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.time-range .hotkey-input { width: 70px; text-align: center; }
 .setting-row input[type='range'] { width: 145px; accent-color: var(--accent); }
 .toggle { appearance: none; flex-shrink: 0; width: 31px; height: 19px; border-radius: 12px; background: var(--line); border: 1px solid transparent; position: relative; cursor: pointer; margin: 0; }
 .toggle::before { content: ''; position: absolute; width: 13px; height: 13px; top: 2px; left: 2px; border-radius: 50%; background: #fff; transition: transform 160ms; }

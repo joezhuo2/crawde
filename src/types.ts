@@ -41,6 +41,7 @@ export interface Usage {
 export interface Snapshot {
   sessions: Session[];
   hooksInstalled: boolean;
+  hooksStale?: string | null;
   bridgeError: string | null;
   claudeOpen?: boolean;
   dockRight?: boolean;

@@ -71,6 +71,7 @@ export function App() {
     <ChatBubbles sessions={sessions} expanded={expanded} pinned={pinned} onPin={() => setPinned(p => !p)} onOpen={id => void act('open_chat', { id })} onDismiss={id => void dismissChat(id)} />
     {expanded && currentNotice && currentNotice !== dismissedNotice && <div className="notice" role="status"><span>{currentNotice}</span><button className="icon-button notice-close" aria-label="Dismiss notification" onClick={() => setDismissedNotice(currentNotice)}><X size={14} weight="bold" /></button></div>}
     {expanded && !activity.hooksInstalled && native && <button className="connect-bubble" onClick={() => void act('configure_hooks', { install: true })}>Connect to Claude Code <span>Enable activity hooks</span></button>}
+    {expanded && activity.hooksInstalled && activity.hooksStale && native && <button className="connect-bubble" onClick={() => void act('configure_hooks', { install: true })}>Reconnect to Claude Code <span>Hooks need reinstalling: {activity.hooksStale}</span></button>}
     </div>
     <div className="pet-anchor">
       <div ref={position.petRef} className="pet-body">

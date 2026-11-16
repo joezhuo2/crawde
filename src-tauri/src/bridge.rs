@@ -306,6 +306,59 @@ pub fn installed() -> bool {
         .unwrap_or(false)
 }
 
+fn read_settings() -> Option<Value> {
+    fs::read_to_string(config_dir().join("settings.json"))
+        .ok()
+        .and_then(|s| serde_json::from_str::<Value>(&s).ok())
+}
+
+pub fn stale_reason_in(settings: &Value, token: &str, executable: &str) -> Option<String> {
+    let expected = format!("Bearer {token}");
+    let handlers: Vec<&Value> = settings
+        .get("hooks")
+        .and_then(Value::as_object)?
+        .values()
+        .filter_map(Value::as_array)
+        .flatten()
+        .filter_map(|group| group.get("hooks").and_then(Value::as_array))
+        .flatten()
+        .filter(|hook| is_our_handler(hook))
+        .collect();
+    if handlers.is_empty() {
+        return None;
+    }
+    if handlers.iter().any(|hook| {
+        hook.get("url").is_some()
+            && hook
+                .get("headers")
+                .and_then(|h| h.get("Authorization"))
+                .and_then(Value::as_str)
+                != Some(expected.as_str())
+    }) {
+        return Some("the saved access token no longer matches".into());
+    }
+    if !startup_hook_matches(settings, executable) {
+        return Some("they point at a different Crawde install".into());
+    }
+    let missing = EVENTS
+        .iter()
+        .filter(|event| {
+            settings
+                .get("hooks")
+                .and_then(|h| h.get(**event))
+                .and_then(Value::as_array)
+                .is_none_or(|groups| !groups.iter().any(is_ours))
+        })
+        .count();
+    (missing > 0).then(|| format!("{missing} activity events are not connected"))
+}
+
+pub fn stale_reason(app: &AppHandle) -> Option<String> {
+    let token = token(app).ok()?;
+    let executable = std::env::current_exe().ok()?;
+    stale_reason_in(&read_settings()?, token.trim(), &executable.to_string_lossy())
+}
+
 fn startup_hook_matches(settings: &Value, executable: &str) -> bool {
     settings
         .get("hooks")
@@ -340,6 +393,25 @@ pub fn needs_repair() -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn stale_hooks_report_token_path_and_missing_events() {
+        let mut settings = json!({});
+        merge_hooks(&mut settings, "abc", true, "C:/crawde.exe").unwrap();
+        assert_eq!(stale_reason_in(&settings, "abc", "C:/crawde.exe"), None);
+        assert!(stale_reason_in(&settings, "new", "C:/crawde.exe")
+            .unwrap()
+            .contains("token"));
+        assert!(stale_reason_in(&settings, "abc", "D:/other.exe")
+            .unwrap()
+            .contains("different"));
+        settings["hooks"]["Stop"] = json!([]);
+        assert_eq!(
+            stale_reason_in(&settings, "abc", "C:/crawde.exe").as_deref(),
+            Some("1 activity events are not connected")
+        );
+        assert_eq!(stale_reason_in(&json!({}), "abc", "C:/crawde.exe"), None);
+    }
+
     #[test]
     fn install_is_idempotent_and_uninstall_preserves_other_hooks() {
         let mut settings = json!({"theme":"dark","hooks":{"Stop":[{"hooks":[{"type":"command","command":"echo hi"}]}]}});

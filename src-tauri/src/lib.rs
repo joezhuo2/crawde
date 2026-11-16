@@ -36,6 +36,7 @@ struct AppState {
 struct Snapshot {
     sessions: Vec<activity::Session>,
     hooks_installed: bool,
+    hooks_stale: Option<String>,
     bridge_error: Option<String>,
     dock_right: bool,
     dock_top: bool,
@@ -51,7 +52,7 @@ struct Snapshot {
 }
 
 #[tauri::command]
-fn snapshot(state: State<AppState>) -> Result<Snapshot, String> {
+fn snapshot(app: tauri::AppHandle, state: State<AppState>) -> Result<Snapshot, String> {
     let (dock_right, dock_top, pet_x, pet_y) = {
         let position = state.position.lock().map_err(|e| e.to_string())?;
         (position.right, position.top, position.pet_x, position.pet_y)
@@ -74,6 +75,7 @@ fn snapshot(state: State<AppState>) -> Result<Snapshot, String> {
         update: state.update.lock().map_err(|e| e.to_string())?.clone(),
         usage: state.usage.lock().map_err(|e| e.to_string())?.clone(),
         hooks_installed: bridge::installed(),
+        hooks_stale: bridge::stale_reason(&app),
         bridge_error: state
             .bridge_error
             .lock()

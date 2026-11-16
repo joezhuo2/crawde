@@ -266,7 +266,7 @@ pub fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         .icon(tauri::image::Image::from_bytes(include_bytes!(
             "../icons/tray.png"
         ))?)
-        .tooltip("Crawde · click to show or hide")
+        .tooltip(tooltip(app))
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_tray_icon_event(|tray, event| {
@@ -293,6 +293,40 @@ pub fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     start_presence(app.clone());
     crate::focus::start_fullscreen_watch(app.clone());
     Ok(())
+}
+
+pub fn ago(ms: u64) -> String {
+    match ms / 1000 {
+        0..60 => "just now".into(),
+        s @ 60..3600 => format!("{}m ago", s / 60),
+        s @ 3600..86_400 => format!("{}h ago", s / 3600),
+        s => format!("{}d ago", s / 86_400),
+    }
+}
+
+fn tooltip(app: &AppHandle) -> String {
+    let status = if !crate::bridge::installed() {
+        "⚠ Hooks not installed".to_string()
+    } else if let Some(reason) = crate::bridge::stale_reason(app) {
+        format!("⚠ Reinstall hooks: {reason}")
+    } else {
+        let last = app
+            .state::<AppState>()
+            .activity
+            .lock()
+            .map(|a| a.last_event_at)
+            .unwrap_or(0);
+        if last == 0 {
+            "Hooks OK · no events yet".into()
+        } else {
+            format!(
+                "Hooks OK · last event {}",
+                ago(crate::bridge::now().saturating_sub(last))
+            )
+        }
+    };
+    format!("Crawde · {status}
+Click to show or hide")
 }
 
 fn start_presence(app: AppHandle) {
@@ -328,6 +362,9 @@ fn start_presence(app: AppHandle) {
                 }
             }
             crate::notifications::tick(&app);
+            if let Some(tray) = app.tray_by_id("crawde") {
+                let _ = tray.set_tooltip(Some(tooltip(&app)));
+            }
             std::thread::sleep(std::time::Duration::from_secs(3));
         }
     });
@@ -342,5 +379,16 @@ pub fn quit(app: AppHandle) {
 pub fn close_settings(app: AppHandle) {
     if let Some(window) = app.get_webview_window("settings") {
         let _ = window.close();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn ages_read_naturally() {
+        assert_eq!(super::ago(59_999), "just now");
+        assert_eq!(super::ago(120_000), "2m ago");
+        assert_eq!(super::ago(7_200_000), "2h ago");
+        assert_eq!(super::ago(172_800_000), "2d ago");
     }
 }

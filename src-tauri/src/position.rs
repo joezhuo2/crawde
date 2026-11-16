@@ -278,7 +278,7 @@ pub fn drag_end(
         )
         .map_err(|e| e.to_string())?;
     }
-    crate::snapshot(state)
+    crate::snapshot(app, state)
 }
 
 #[tauri::command]

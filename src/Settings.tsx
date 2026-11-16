@@ -23,7 +23,7 @@ export function Settings() {
   const preferences = draft ?? defaults;
   const pending = useRef(new Map<keyof Preferences, { value: Preferences[keyof Preferences] }>());
   const [saving, setSaving] = useState(0);
-  const [hotkey, setHotkey] = useState<string | null>(null);
+  const [shortcutDraft, setShortcutDraft] = useState<Partial<Record<'hotkey' | 'ghostHotkey' | 'quietStart' | 'quietEnd', string>>>({});
   useEffect(() => {
     if (!activity.preferences) return;
     const next = { ...activity.preferences };
@@ -54,6 +54,8 @@ export function Settings() {
     try { await command(name, args); setMessage(success ?? ''); } catch (error) { setMessage(String(error)); }
   };
 
+  const textInput = (key: keyof typeof shortcutDraft, label: string, placeholder: string) => <input className="hotkey-input" aria-label={label} value={shortcutDraft[key] ?? preferences[key]} onChange={e => setShortcutDraft(d => ({ ...d, [key]: e.target.value }))} onBlur={e => { if (shortcutDraft[key] !== undefined) set(key, e.target.value.trim()); setShortcutDraft(d => { const next = { ...d }; delete next[key]; return next; }); }} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }} placeholder={placeholder} spellCheck={false} />;
+
   if (!draft || new URLSearchParams(location.search).has('loading')) return <SettingsSkeleton error={activity.connectionError} />;
 
   return <main className="settings-shell">
@@ -67,7 +69,10 @@ export function Settings() {
           {!native && <p className="settings-note" role="status">Browser preview. Desktop visibility and saving are available in the Crawde Windows app.</p>}
           <h2>Your companion</h2>
           <Toggle label="Show Crawde" detail="Tray click or hotkey toggles visibility." checked={preferences.enabled} disabled={!native} onChange={v => set('enabled', v)} />
-          <Field label="Show / hide shortcut"><input className="hotkey-input" aria-label="Global hotkey" value={hotkey ?? preferences.hotkey} onChange={e => setHotkey(e.target.value)} onBlur={e => { if (hotkey !== null) set('hotkey', e.target.value); setHotkey(null); }} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }} placeholder="Ctrl+Alt+P" spellCheck={false} /></Field>
+          <Field label="Show / hide shortcut">{textInput('hotkey', 'Global hotkey', 'Ctrl+Alt+P')}</Field>
+          <Toggle label="Ghost mode" detail="See-through and click-through. Use the tray menu or shortcut to turn it off." checked={preferences.ghost} onChange={v => set('ghost', v)} />
+          <Field label="Ghost mode shortcut">{textInput('ghostHotkey', 'Ghost mode hotkey', 'Ctrl+Alt+G')}</Field>
+          <Toggle label="Hide in fullscreen apps" detail="Games, videos, and presentations. Ghost mode keeps Crawde visible instead." checked={preferences.hideInFullscreen} onChange={v => set('hideInFullscreen', v)} />
           <Field label="Appearance"><select value={preferences.theme} onChange={e => set('theme', e.target.value as Preferences['theme'])}><option value="system">Follow system</option><option value="light">Light</option><option value="dark">Dark</option></select></Field>
           <Field label="Pet size"><select value={preferences.scale} onChange={e => set('scale', Number(e.target.value))}><option value={2}>Small · 2× pixels</option><option value={3}>Medium · 3× pixels</option><option value={4}>Large · 4× pixels</option></select></Field>
           <p className="settings-note">Drag Crawde to move it. Positions are remembered per monitor. It sleeps after 10 minutes without a prompt, or when Claude closes.</p>
@@ -80,6 +85,10 @@ export function Settings() {
           <Toggle label="Finished a response" checked={preferences.completionSound} onChange={v => set('completionSound', v)} />
           <Toggle label="Errors" checked={preferences.errorSound} onChange={v => set('errorSound', v)} />
           <Toggle label="Approval reminders" detail="A quiet reminder every 45 seconds." checked={preferences.reminders} onChange={v => set('reminders', v)} />
+          <h2>Do not disturb</h2>
+          <Toggle label="Follow Windows Do not disturb" detail="Mute sounds and reminders while Focus Assist or Do not disturb is on." checked={preferences.followFocusAssist} onChange={v => set('followFocusAssist', v)} />
+          <Toggle label="Quiet hours" detail="Mute sounds and reminders during a daily window. Cards still update." checked={preferences.quietHours} onChange={v => set('quietHours', v)} />
+          {preferences.quietHours && <Field label="From · until"><span className="time-range">{textInput('quietStart', 'Quiet hours start', '22:00')}{textInput('quietEnd', 'Quiet hours end', '08:00')}</span></Field>}
           <button type="button" className="secondary-button" onClick={() => void act('test_sound', { preferences })}>Test sound</button>
         </>}
         {tab === 'claude' && <>

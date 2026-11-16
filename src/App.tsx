@@ -63,7 +63,7 @@ export function App() {
       setDismissed(current => ({ ...current, [id]: session.lastPromptAt }));
     } catch (error) { setNotice(String(error)); }
   };
-  return <main className={`pet-scene ${expanded ? 'is-expanded' : ''} ${activity.dockRight ? 'dock-right' : ''} ${activity.dockTop ? 'dock-top' : ''} ${hasUsage(activity.usage) ? 'has-rings' : ''}`} aria-label="Crawde desktop companion"
+  return <main className={`pet-scene ${expanded ? 'is-expanded' : ''} ${activity.dockRight ? 'dock-right' : ''} ${activity.dockTop ? 'dock-top' : ''} ${hasUsage(activity.usage) ? 'has-rings' : ''} ${preferences.ghost ? 'ghost' : ''}`} aria-label="Crawde desktop companion"
     style={{ '--pet-x': `${activity.petX ?? 16}px`, '--pet-y': activity.petY == null ? `calc(100% - ${24 * preferences.scale + 6}px)` : `${activity.petY}px`, '--pet-width': `${32 * preferences.scale}px`, '--pet-height': `${24 * preferences.scale}px` } as React.CSSProperties}
     onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
     onContextMenu={event => { event.preventDefault(); void act('show_context_menu'); }}>

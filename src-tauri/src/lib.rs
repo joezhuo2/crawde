@@ -1,5 +1,6 @@
 mod activity;
 mod bridge;
+mod focus;
 mod lifecycle;
 mod navigation;
 mod notifications;

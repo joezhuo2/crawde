@@ -21,6 +21,7 @@ pub fn tick(app: &AppHandle) {
     };
     let mut notifications = state.notifications.lock().unwrap();
     let now = crate::bridge::now();
+    let quiet = crate::focus::quiet(&preferences);
     notifications
         .seen
         .retain(|id, _| sessions.iter().any(|s| &s.id == id));
@@ -37,7 +38,7 @@ pub fn tick(app: &AppHandle) {
                 "error" if preferences.error_sound => Some("error"),
                 _ => None,
             };
-            if let Some(kind) = kind {
+            if let Some(kind) = kind.filter(|_| !quiet) {
                 play(kind, &preferences);
             }
             notifications.seen.insert(session.id, (session.status, now));

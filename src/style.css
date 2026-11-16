@@ -7,6 +7,7 @@ button:disabled { opacity: .35; cursor: default; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .pet-scene { position: relative; width: 350px; height: 100%; user-select: none; --rings-room: 0px; --pet-top: clamp(6px, var(--pet-y), calc(100% - var(--pet-height) - 6px - var(--rings-room))); }
 .pet-scene.has-rings { --rings-room: 34px; }
+.pet-scene.ghost { opacity: .35; transition: opacity 200ms; }
 .chat-stack { position: absolute; left: 12px; right: 12px; bottom: calc(100% - var(--pet-top) + 6px); max-height: max(0px, calc(var(--pet-top) - 14px)); display: flex; flex-direction: column; gap: 6px; overflow-y: auto; scrollbar-width: none; }
 .dock-top .chat-stack { bottom: auto; top: calc(var(--pet-top) + var(--pet-height) + var(--rings-room) + 6px); max-height: max(0px, calc(100% - var(--pet-top) - var(--pet-height) - var(--rings-room) - 14px)); flex-direction: column-reverse; }
 
@@ -119,6 +120,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .setting-row small { display: block; font-size: 11px; color: var(--muted); line-height: 16px; margin-top: 3px; }
 .setting-row input:not([type='checkbox']):not([type='range']), .setting-row select { border: 1px solid var(--line); border-radius: 6px; background: var(--control); color: var(--ink); padding: 7px 9px; font-size: 11px; max-width: 180px; min-width: 0; }
 .hotkey-input { width: 145px; }
+.time-range { display: flex; gap: 6px; }
+.time-range .hotkey-input { width: 70px; text-align: center; }
 .setting-row input[type='range'] { width: 145px; accent-color: var(--accent); }
 .toggle { appearance: none; flex-shrink: 0; width: 31px; height: 19px; border-radius: 12px; background: var(--line); border: 1px solid transparent; position: relative; cursor: pointer; margin: 0; }
 .toggle::before { content: ''; position: absolute; width: 13px; height: 13px; top: 2px; left: 2px; border-radius: 50%; background: #fff; transition: transform 160ms; }

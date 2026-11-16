@@ -5,11 +5,11 @@ use tauri::{
     AppHandle, Manager, WebviewUrl, WebviewWindowBuilder,
 };
 use tauri_plugin_autostart::ManagerExt;
-use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
 #[derive(Default)]
 pub struct Lifecycle {
     pub claude_open: bool,
+    pub fullscreen_hidden: bool,
 }
 
 #[tauri::command]
@@ -121,6 +121,14 @@ pub fn context_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         prefs.sound,
         None::<&str>,
     )?;
+    let ghost = CheckMenuItem::with_id(
+        app,
+        "ghost",
+        "Ghost mode",
+        true,
+        prefs.ghost,
+        None::<&str>,
+    )?;
     let installed = crate::bridge::installed();
     let hooks = MenuItem::with_id(
         app,
@@ -149,6 +157,7 @@ pub fn context_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
             &startup,
             &walks,
             &sound,
+            &ghost,
             &PredefinedMenuItem::separator(app)?,
             &hooks,
             &disconnect,
@@ -196,12 +205,13 @@ pub fn handle_menu(app: &AppHandle, id: &str) {
             crate::updates::activate(app);
             return;
         }
-        "reducedMotion" | "startup" | "roaming" | "sound" => {
+        "reducedMotion" | "startup" | "roaming" | "sound" | "ghost" => {
             let prefs = app.state::<AppState>().preferences.lock().unwrap().clone();
             let current = match id {
                 "reducedMotion" => prefs.reduced_motion,
                 "startup" => prefs.startup,
                 "roaming" => prefs.roaming,
+                "ghost" => prefs.ghost,
                 _ => prefs.sound,
             };
             preferences::update_preference(app.clone(), id.into(), serde_json::json!(!current))
@@ -244,12 +254,13 @@ pub fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     if prefs.startup && !cfg!(debug_assertions) {
         app.autolaunch().enable()?;
     }
-    app.global_shortcut()
-        .on_shortcut(prefs.hotkey.as_str(), |app, _, event| {
-            if event.state == ShortcutState::Pressed {
-                let _ = toggle(app);
-            }
-        })?;
+    preferences::bind(app, &prefs.hotkey, preferences::toggle_visibility)?;
+    if !prefs.ghost_hotkey.is_empty() {
+        if let Err(error) = preferences::bind(app, &prefs.ghost_hotkey, preferences::toggle_ghost) {
+            *app.state::<AppState>().menu_message.lock().unwrap() =
+                Some(format!("Ghost mode shortcut is unavailable: {error}"));
+        }
+    }
     let menu = context_menu(app)?;
     TrayIconBuilder::with_id("crawde")
         .icon(tauri::image::Image::from_bytes(include_bytes!(
@@ -280,6 +291,7 @@ pub fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         set_pet_visible(app, true)?;
     }
     start_presence(app.clone());
+    crate::focus::start_fullscreen_watch(app.clone());
     Ok(())
 }
 
@@ -301,9 +313,10 @@ fn start_presence(app: AppHandle) {
             let mut lifecycle = state.lifecycle.lock().unwrap();
             let was_open = lifecycle.claude_open;
             lifecycle.claude_open = open;
+            let fullscreen_hidden = lifecycle.fullscreen_hidden;
             drop(lifecycle);
             let enabled = state.preferences.lock().unwrap().enabled;
-            if open && !was_open && enabled {
+            if open && !was_open && enabled && !fullscreen_hidden {
                 let _ = set_pet_visible(&app, true);
             }
             // Keep the pet sleeping when Claude closes. Recheck monitor topology for docking/reconnection.

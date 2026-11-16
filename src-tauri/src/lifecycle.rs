@@ -121,14 +121,8 @@ pub fn context_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         prefs.sound,
         None::<&str>,
     )?;
-    let ghost = CheckMenuItem::with_id(
-        app,
-        "ghost",
-        "Ghost mode",
-        true,
-        prefs.ghost,
-        None::<&str>,
-    )?;
+    let ghost =
+        CheckMenuItem::with_id(app, "ghost", "Ghost mode", true, prefs.ghost, None::<&str>)?;
     let installed = crate::bridge::installed();
     let hooks = MenuItem::with_id(
         app,
@@ -222,7 +216,10 @@ pub fn handle_menu(app: &AppHandle, id: &str) {
         _ => return,
     };
     let message = match result {
-        Err(error) => Some(error),
+        Err(error) => {
+            crate::log::record("ERROR", format!("{id}: {error}"));
+            Some(error)
+        }
         Ok(()) if id == "install_hooks" => {
             Some("Hooks installed. Restart existing Claude sessions.".into())
         }
@@ -247,6 +244,7 @@ pub fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     *app.state::<AppState>().preferences.lock().unwrap() = prefs.clone();
     if crate::bridge::installed() && crate::bridge::needs_repair() {
         if let Err(error) = crate::bridge::configure_hooks(app.clone(), true) {
+            crate::log::record("ERROR", format!("Hook repair failed: {error}"));
             *app.state::<AppState>().bridge_error.lock().unwrap() =
                 Some(format!("Activity hooks need reconnecting: {error}"));
         }
@@ -257,6 +255,7 @@ pub fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     preferences::bind(app, &prefs.hotkey, preferences::toggle_visibility)?;
     if !prefs.ghost_hotkey.is_empty() {
         if let Err(error) = preferences::bind(app, &prefs.ghost_hotkey, preferences::toggle_ghost) {
+            crate::log::record("WARN", format!("Ghost mode shortcut unavailable: {error}"));
             *app.state::<AppState>().menu_message.lock().unwrap() =
                 Some(format!("Ghost mode shortcut is unavailable: {error}"));
         }
@@ -325,8 +324,10 @@ fn tooltip(app: &AppHandle) -> String {
             )
         }
     };
-    format!("Crawde · {status}
-Click to show or hide")
+    format!(
+        "Crawde · {status}
+Click to show or hide"
+    )
 }
 
 fn start_presence(app: AppHandle) {

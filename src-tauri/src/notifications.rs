@@ -101,14 +101,7 @@ fn play_file(path: &str, volume: f32) -> bool {
     use windows_sys::Win32::Media::Multimedia::mciSendStringW;
     let send = |command: String| {
         let wide: Vec<u16> = command.encode_utf16().chain([0]).collect();
-        unsafe {
-            mciSendStringW(
-                wide.as_ptr(),
-                std::ptr::null_mut(),
-                0,
-                std::ptr::null_mut(),
-            ) == 0
-        }
+        unsafe { mciSendStringW(wide.as_ptr(), std::ptr::null_mut(), 0, std::ptr::null_mut()) == 0 }
     };
     let alias = format!("crawde{}", uuid::Uuid::new_v4().simple());
     if !send(format!("open \"{path}\" type mpegvideo alias {alias}")) {

@@ -42,23 +42,7 @@ pub fn forward_hook() -> Result<(), String> {
     if !token.chars().all(|c| c.is_ascii_hexdigit() || c == '-') {
         return Err("Invalid bridge token".into());
     }
-    let address: SocketAddr = "127.0.0.1:47631".parse().expect("constant address");
-    let timeout = std::time::Duration::from_millis(400);
-    let mut stream = TcpStream::connect_timeout(&address, timeout).map_err(|e| e.to_string())?;
-    stream
-        .set_write_timeout(Some(timeout))
-        .map_err(|e| e.to_string())?;
-    stream
-        .set_read_timeout(Some(timeout))
-        .map_err(|e| e.to_string())?;
-    let header = format!("POST /events HTTP/1.1\r\nHost: 127.0.0.1:47631\r\nAuthorization: Bearer {token}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len());
-    stream
-        .write_all(header.as_bytes())
-        .map_err(|e| e.to_string())?;
-    stream.write_all(&body).map_err(|e| e.to_string())?;
-    let mut response = [0; 128];
-    let length = stream.read(&mut response).map_err(|e| e.to_string())?;
-    if !String::from_utf8_lossy(&response[..length]).starts_with("HTTP/1.1 200") {
+    if !post(&token, &body)?.starts_with("HTTP/1.1 200") {
         return Err("Hook receiver rejected event".into());
     }
     Ok(())
@@ -82,6 +66,37 @@ const EVENTS: &[&str] = &[
     "StopFailure",
     "Elicitation",
 ];
+
+pub fn post(token: &str, body: &[u8]) -> Result<String, String> {
+    let address: SocketAddr = "127.0.0.1:47631".parse().expect("constant address");
+    let timeout = std::time::Duration::from_millis(400);
+    let mut stream = TcpStream::connect_timeout(&address, timeout).map_err(|e| e.to_string())?;
+    stream
+        .set_write_timeout(Some(timeout))
+        .map_err(|e| e.to_string())?;
+    stream
+        .set_read_timeout(Some(timeout))
+        .map_err(|e| e.to_string())?;
+    let header = format!(
+        "POST /events HTTP/1.1
+Host: 127.0.0.1:47631
+Authorization: Bearer {}
+Content-Type: application/json
+Content-Length: {}
+Connection: close
+
+",
+        token.trim(),
+        body.len()
+    );
+    stream
+        .write_all(header.as_bytes())
+        .map_err(|e| e.to_string())?;
+    stream.write_all(body).map_err(|e| e.to_string())?;
+    let mut response = [0; 128];
+    let length = stream.read(&mut response).map_err(|e| e.to_string())?;
+    Ok(String::from_utf8_lossy(&response[..length]).into_owned())
+}
 
 pub fn now() -> u64 {
     SystemTime::now()
@@ -178,6 +193,12 @@ pub fn start(app: AppHandle) -> Result<(), String> {
                     _ => 413,
                 }
             };
+            if status != 200 {
+                crate::log::record(
+                    "WARN",
+                    format!("Rejected hook request with status {status}"),
+                );
+            }
             // Observational hooks must never return a Claude permission decision.
             if status == 200 {
                 crate::notifications::tick(&app);
@@ -306,7 +327,7 @@ pub fn installed() -> bool {
         .unwrap_or(false)
 }
 
-fn read_settings() -> Option<Value> {
+pub fn read_settings() -> Option<Value> {
     fs::read_to_string(config_dir().join("settings.json"))
         .ok()
         .and_then(|s| serde_json::from_str::<Value>(&s).ok())
@@ -356,7 +377,11 @@ pub fn stale_reason_in(settings: &Value, token: &str, executable: &str) -> Optio
 pub fn stale_reason(app: &AppHandle) -> Option<String> {
     let token = token(app).ok()?;
     let executable = std::env::current_exe().ok()?;
-    stale_reason_in(&read_settings()?, token.trim(), &executable.to_string_lossy())
+    stale_reason_in(
+        &read_settings()?,
+        token.trim(),
+        &executable.to_string_lossy(),
+    )
 }
 
 fn startup_hook_matches(settings: &Value, executable: &str) -> bool {

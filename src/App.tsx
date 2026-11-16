@@ -35,7 +35,7 @@ export function App() {
   useEffect(() => { document.documentElement.dataset.theme = preferences.theme; document.documentElement.dataset.reduced = String(behavior.reduced); }, [preferences.theme, behavior.reduced]);
   const act = async (name: string, args?: Record<string, unknown>) => {
     setDismissedNotice(null);
-    try { await command(name, args); setNotice(''); } catch (error) { setNotice(String(error)); }
+    try { await command(name, args); setNotice(''); } catch (error) { setNotice(String(error)); void command('log_message', { message: `${name}: ${String(error)}` }).catch(() => {}); }
   };
   const activatePet = () => { behavior.ability(); void act('open_claude'); };
   const walkMode = behavior.exploring ? 'exploring' : activity.sessions.some(session => session.status === 'working') ? 'working' : 'idle';

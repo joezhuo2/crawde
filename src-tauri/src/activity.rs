@@ -694,13 +694,18 @@ mod tests {
         state.apply(event("UserPromptSubmit"), 1).unwrap();
         let mut failed = event("PostToolUseFailure");
         failed.tool_name = "Bash".into();
-        failed.error = serde_json::json!("exit code 1:   npm ERR!
-missing script");
+        failed.error = serde_json::json!(
+            "exit code 1:   npm ERR!
+missing script"
+        );
         state.apply(failed, 2).unwrap();
         let session = &state.visible(2)[0];
         assert_eq!(session.status, "error");
         assert_eq!(session.activity, "⚠️ Bash failed");
-        assert_eq!(session.error.as_deref(), Some("exit code 1: npm ERR! missing script"));
+        assert_eq!(
+            session.error.as_deref(),
+            Some("exit code 1: npm ERR! missing script")
+        );
         state.apply(event("PreToolUse"), 3).unwrap();
         assert!(state.visible(3)[0].error.is_none());
         let mut stop = event("StopFailure");
@@ -725,7 +730,10 @@ missing script");
             ("Edit", serde_json::json!({"file_path": "a.rs"})),
             ("Edit", serde_json::json!({"file_path": "a.rs"})),
             ("Write", serde_json::json!({"file_path": "b.rs"})),
-            ("NotebookEdit", serde_json::json!({"notebook_path": "c.ipynb"})),
+            (
+                "NotebookEdit",
+                serde_json::json!({"notebook_path": "c.ipynb"}),
+            ),
         ] {
             let mut pre = event("PreToolUse");
             pre.tool_name = tool.into();

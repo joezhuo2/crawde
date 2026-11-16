@@ -82,7 +82,9 @@ pub fn quiet(preferences: &Preferences) -> bool {
 fn fullscreen_app(pet: &tauri::WebviewWindow) -> bool {
     use windows_sys::Win32::{
         Foundation::RECT,
-        Graphics::Gdi::{GetMonitorInfoW, MonitorFromWindow, MONITORINFO, MONITOR_DEFAULTTONEAREST},
+        Graphics::Gdi::{
+            GetMonitorInfoW, MonitorFromWindow, MONITORINFO, MONITOR_DEFAULTTONEAREST,
+        },
         UI::WindowsAndMessaging::{
             GetClassNameW, GetForegroundWindow, GetShellWindow, GetWindowLongW, GetWindowRect,
             GetWindowThreadProcessId, GWL_STYLE, WS_CAPTION,

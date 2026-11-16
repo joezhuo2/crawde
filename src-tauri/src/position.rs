@@ -312,12 +312,13 @@ pub fn start_hit_testing(app: AppHandle) {
             let ghost = state.preferences.lock().is_ok_and(|p| p.ghost);
             let position = state.position.lock().unwrap();
             let inside = !ghost && position.drag.is_some()
-                || !ghost && position.regions.iter().any(|r| {
-                    x >= r.x - 6.0
-                        && y >= r.y - 6.0
-                        && x <= r.x + r.width + 6.0
-                        && y <= r.y + r.height + 6.0
-                });
+                || !ghost
+                    && position.regions.iter().any(|r| {
+                        x >= r.x - 6.0
+                            && y >= r.y - 6.0
+                            && x <= r.x + r.width + 6.0
+                            && y <= r.y + r.height + 6.0
+                    });
             drop(position);
             if ignored == inside {
                 if window.set_ignore_cursor_events(!inside).is_ok() {

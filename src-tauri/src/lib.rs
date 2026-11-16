@@ -1,7 +1,9 @@
 mod activity;
 mod bridge;
+mod diagnostics;
 mod focus;
 mod lifecycle;
+mod log;
 mod navigation;
 mod notifications;
 mod platform;
@@ -116,6 +118,11 @@ fn restore_chats(state: State<AppState>) -> Result<(), String> {
 }
 
 pub fn run() {
+    log::install_panic_hook();
+    log::record(
+        "INFO",
+        format!("Crawde {} started", env!("CARGO_PKG_VERSION")),
+    );
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _| {
             updates::check_on_launch(app);
@@ -139,6 +146,7 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             if let Err(error) = bridge::start(app.handle().clone()) {
+                log::record("ERROR", &error);
                 *app.state::<AppState>().bridge_error.lock().unwrap() = Some(error);
             }
             position::initialize(app.handle())?;
@@ -166,6 +174,10 @@ pub fn run() {
             preferences::update_preference,
             notifications::test_sound,
             notifications::pick_sound,
+            diagnostics::run_diagnostics,
+            log::read_logs,
+            log::log_message,
+            log::open_log_folder,
             navigation::open_chat,
             navigation::open_claude,
             navigation::new_chat,

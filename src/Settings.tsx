@@ -23,6 +23,9 @@ export function Settings() {
   const preferences = draft ?? defaults;
   const pending = useRef(new Map<keyof Preferences, { value: Preferences[keyof Preferences] }>());
   const [saving, setSaving] = useState(0);
+  const [checks, setChecks] = useState<{ name: string; status: 'pass' | 'warn' | 'fail'; detail: string }[] | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [logs, setLogs] = useState<string | null>(null);
   const [shortcutDraft, setShortcutDraft] = useState<Partial<Record<'hotkey' | 'ghostHotkey' | 'quietStart' | 'quietEnd', string>>>({});
   useEffect(() => {
     if (!activity.preferences) return;
@@ -55,6 +58,19 @@ export function Settings() {
   };
 
   const textInput = (key: keyof typeof shortcutDraft, label: string, placeholder: string) => <input className="hotkey-input" aria-label={label} value={shortcutDraft[key] ?? preferences[key]} onChange={e => setShortcutDraft(d => ({ ...d, [key]: e.target.value }))} onBlur={e => { if (shortcutDraft[key] !== undefined) set(key, e.target.value.trim()); setShortcutDraft(d => { const next = { ...d }; delete next[key]; return next; }); }} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }} placeholder={placeholder} spellCheck={false} />;
+
+  const diagnose = async () => {
+    setChecking(true);
+    try { setChecks(await command('run_diagnostics')); } catch (error) { setMessage(String(error)); } finally { setChecking(false); }
+  };
+  const loadLogs = async () => { try { const text = await command<string>('read_logs'); setLogs(text || 'No log entries yet.'); return text; } catch (error) { setMessage(String(error)); return ''; } };
+  const copyLogs = async () => {
+    const text = await loadLogs();
+    const report = `Crawde ${version} · ${navigator.userAgent}
+
+${text}`;
+    try { await navigator.clipboard.writeText(report); setMessage('Logs copied. Your home folder is shown as ~.'); } catch { setMessage('Could not copy; select the log text below instead.'); }
+  };
 
   const soundFile = (key: 'approvalSoundFile' | 'completionSoundFile' | 'errorSoundFile', kind: string) => {
     const file = preferences[key];
@@ -114,6 +130,8 @@ export function Settings() {
           <Field label="Open chats in"><select value={preferences.openTarget} onChange={e => set('openTarget', e.target.value as Preferences['openTarget'])}><option value="desktop">Claude Desktop</option><option value="terminal">Windows Terminal</option></select></Field>
           <p className="settings-note">New chat uses the most recently active project. A clicked conversation becomes the current project.</p>
           {activity.bridgeError && <p className="settings-error">{activity.bridgeError}</p>}
+          <button type="button" className="secondary-button" disabled={checking} onClick={() => void diagnose()}>{checking ? 'Checking…' : 'Run diagnostics'}</button>
+          {checks && <ul className="diagnostics" aria-label="Diagnostic results">{checks.map(c => <li key={c.name} className={c.status}><span aria-label={c.status}>{c.status === 'pass' ? '✓' : c.status === 'warn' ? '!' : '✗'}</span><span><b>{c.name}</b><small>{c.detail}</small></span></li>)}</ul>}
         </>}
         {tab === 'about' && <>
           <h2>Small crab. Big company.</h2>
@@ -121,6 +139,14 @@ export function Settings() {
           <p className="settings-note">Updates are checked on every launch. Install available updates from the right-click menu; Crawde closes, installs silently, and reopens.</p>
           {activity.update && <p className="settings-note" role="status">{activity.update.message}</p>}
           <button type="button" className="text-button" onClick={() => void act('open_releases')}>View releases <ArrowSquareOut size={14} /></button>
+          <h2>Logs</h2>
+          <p className="settings-note">Errors and crashes are saved on this computer. Copying replaces your home folder with ~.</p>
+          <div className="log-actions">
+            <button type="button" className="secondary-button" onClick={() => logs === null ? void loadLogs() : setLogs(null)}>{logs === null ? 'View logs' : 'Hide logs'}</button>
+            <button type="button" className="secondary-button" onClick={() => void copyLogs()}>Copy for bug report</button>
+            <button type="button" className="text-button" onClick={() => void act('open_log_folder')}>Open folder <ArrowSquareOut size={14} /></button>
+          </div>
+          {logs !== null && <textarea className="log-view" readOnly value={logs} aria-label="Crawde log" onFocus={e => e.currentTarget.select()} />}
         </>}
       </div>
       <footer className="settings-footer"><span role="status">{message || activity.connectionError || (saving ? 'Saving…' : native ? 'Changes save automatically.' : 'Browser preview — changes are not saved.')}</span></footer>

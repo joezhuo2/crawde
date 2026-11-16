@@ -14,7 +14,7 @@ mod titles;
 mod updates;
 mod wsl;
 
-pub use bridge::forward_hook;
+pub use bridge::{cli, forward_hook};
 use std::sync::Mutex;
 use tauri::{Manager, State};
 

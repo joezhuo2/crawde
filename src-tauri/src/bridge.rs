@@ -86,7 +86,7 @@ Content-Length: {}
 Connection: close
 
 ",
-        token.trim(),
+        token,
         body.len()
     );
     stream
@@ -112,7 +112,10 @@ pub fn config_dir() -> PathBuf {
 }
 
 pub fn token(app: &AppHandle) -> Result<String, String> {
-    let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    token_in(app.path().app_config_dir().map_err(|e| e.to_string())?)
+}
+
+fn token_in(dir: PathBuf) -> Result<String, String> {
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let path = dir.join("bridge-token");
     if path.exists() {
@@ -274,6 +277,48 @@ pub fn merge_hooks(
 
 #[tauri::command]
 pub fn configure_hooks(app: AppHandle, install: bool) -> Result<(), String> {
+    configure(&token(&app)?, install)
+}
+
+// Command-line entry for the /crawde plugin command; runs without starting the app.
+pub fn cli(action: &str) -> Result<String, String> {
+    let dir = crate::platform::app_data_dir()
+        .ok_or("Application data directory is unavailable")?
+        .join("com.joezhuo.crawde");
+    let token = token_in(dir)?;
+    match action {
+        "--install-hooks" => {
+            configure(&token, true)?;
+            Ok(
+                "Crawde activity hooks installed. Restart Claude Code sessions to load them."
+                    .into(),
+            )
+        }
+        "--uninstall-hooks" => {
+            configure(&token, false)?;
+            Ok("Crawde activity hooks removed.".into())
+        }
+        _ => {
+            let executable = std::env::current_exe().map_err(|e| e.to_string())?;
+            Ok(
+                match (
+                    installed(),
+                    read_settings().and_then(|s| {
+                        stale_reason_in(&s, &token, &executable.to_string_lossy())
+                    }),
+                ) {
+                    (false, _) => "Crawde activity hooks are not installed.".into(),
+                    (true, Some(reason)) => {
+                        format!("Crawde activity hooks need reinstalling: {reason}.")
+                    }
+                    (true, None) => "Crawde activity hooks are installed and up to date.".into(),
+                },
+            )
+        }
+    }
+}
+
+fn configure(token: &str, install: bool) -> Result<(), String> {
     let dir = config_dir();
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let path = dir.join("settings.json");
@@ -287,7 +332,7 @@ pub fn configure_hooks(app: AppHandle, install: bool) -> Result<(), String> {
     let executable = std::env::current_exe().map_err(|e| e.to_string())?;
     merge_hooks(
         &mut settings,
-        &token(&app)?,
+        token,
         install,
         &executable.to_string_lossy(),
     )?;
@@ -379,7 +424,7 @@ pub fn stale_reason(app: &AppHandle) -> Option<String> {
     let executable = std::env::current_exe().ok()?;
     stale_reason_in(
         &read_settings()?,
-        token.trim(),
+        &token,
         &executable.to_string_lossy(),
     )
 }

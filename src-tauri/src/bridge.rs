@@ -303,9 +303,8 @@ pub fn cli(action: &str) -> Result<String, String> {
             Ok(
                 match (
                     installed(),
-                    read_settings().and_then(|s| {
-                        stale_reason_in(&s, &token, &executable.to_string_lossy())
-                    }),
+                    read_settings()
+                        .and_then(|s| stale_reason_in(&s, &token, &executable.to_string_lossy())),
                 ) {
                     (false, _) => "Crawde activity hooks are not installed.".into(),
                     (true, Some(reason)) => {
@@ -330,12 +329,7 @@ fn configure(token: &str, install: bool) -> Result<(), String> {
     let mut settings: Value = serde_json::from_str(&contents)
         .map_err(|e| format!("Claude settings were left unchanged: {e}"))?;
     let executable = std::env::current_exe().map_err(|e| e.to_string())?;
-    merge_hooks(
-        &mut settings,
-        token,
-        install,
-        &executable.to_string_lossy(),
-    )?;
+    merge_hooks(&mut settings, token, install, &executable.to_string_lossy())?;
     // Keep an exact backup before every change; never rewrite malformed config.
     if path.exists() {
         fs::copy(&path, dir.join(format!("settings.crawde-{}.bak", now())))
@@ -422,11 +416,7 @@ pub fn stale_reason_in(settings: &Value, token: &str, executable: &str) -> Optio
 pub fn stale_reason(app: &AppHandle) -> Option<String> {
     let token = token(app).ok()?;
     let executable = std::env::current_exe().ok()?;
-    stale_reason_in(
-        &read_settings()?,
-        &token,
-        &executable.to_string_lossy(),
-    )
+    stale_reason_in(&read_settings()?, &token, &executable.to_string_lossy())
 }
 
 fn startup_hook_matches(settings: &Value, executable: &str) -> bool {

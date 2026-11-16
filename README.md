@@ -93,6 +93,10 @@ leave Crawde running and offer a retry; the About tab also shows update status.
   15–45 seconds, then sleeps again. During these outings, walks have 3–7 second
   pauses and stop during attacks. Little walks and reduced motion control these outings.
 - **Reduced motion:** respects Windows preferences and Crawde's own setting.
+- **Ghost mode:** makes the crab see-through and click-through. Toggle it from the right-click
+  menu or with **Ctrl+Alt+G** (configurable). Turn it off from the tray menu or the shortcut.
+- **Hide in fullscreen apps:** the crab hides while a game, video, or presentation is fullscreen
+  on its monitor, and comes back afterwards. With ghost mode on, it stays visible as a ghost instead.
 
 ### Follow your chats
 
@@ -107,17 +111,22 @@ leave Crawde running and offer a retry; the About tab also shows update status.
 - **Context usage:** each card shows its context percentage, such as `41% ctx`, in the bottom-right corner. Usage rings under the pet show plan limits; see [Context % and plan usage](#context--and-plan-usage).
 - **Working:** while a chat is working, its subtitle lines shimmer with a soft
   highlight about every 2 seconds; reduced motion turns this off.
+- **Errors:** a failed tool or a stopped response turns the card red and shows the error
+  text. Hover it to read the full message.
+- **Tool counts:** the timing line adds how many tools ran and how many files were edited.
+  Hover it for a per-tool breakdown and the edited file list.
 
 ## Settings and keybinds
 
 Right-click the crab or its tray icon and choose **Settings**. The same menu provides
-**Reduce motion**, **Launch on startup**, **Little walks**, **Sound effects**, activity
+**Reduce motion**, **Launch on startup**, **Little walks**, **Sound effects**, **Ghost mode**, activity
 hook installation/reinstallation and disconnection, updates, and **Quit Crawde**.
 These controls live only in the right-click menus and save immediately.
 
 | Action | Control |
 | --- | --- |
 | Show or hide Crawde | Tray click or **Ctrl+Alt+P** by default; configurable |
+| Toggle ghost mode | **Ctrl+Alt+G** by default; configurable, or blank to turn off |
 | Expand chats | Hover over the crab or a card |
 | Keep the list open | Pin button in the chat heading |
 | Open a conversation | Click its card |
@@ -130,8 +139,13 @@ Changes save automatically. The shortcut saves when you leave its field or press
 
 Settings include system/light/dark appearance, integer pet sizes, and the global
 hotkey. Sounds have volume, soft/retro
-styles, separate event toggles, and approval reminders. Chat navigation can use
-Claude Desktop or Windows Terminal.
+styles, separate event toggles, approval reminders, and an optional `.wav` or `.mp3`
+file for each event (approval, completion, error). **Do not disturb** mutes sounds and
+reminders while Windows Focus Assist / Do not disturb is on, or during daily quiet
+hours; cards keep updating. Chat navigation can use Claude Desktop or Windows Terminal.
+
+**Settings → About → Logs** shows Crawde's error and crash log, copies it for a bug
+report (your home folder is replaced with `~`), or opens its folder.
 
 Interactive launches show the pet even if Claude is closed. Startup launches wait
 in the tray until Claude opens. Windows may put the tray icon in its overflow menu.
@@ -151,6 +165,25 @@ These captures use Crawde's browser demo with sample conversations.
 **Settings → Claude** shows whether hooks are installed and when activity was last
 received. Install or reinstall hooks from the right-click menu. If it says no activity has arrived, restart the Claude session after
 connecting hooks. For WSL sessions, follow the setup below.
+
+The tray tooltip shows hook status, such as `Hooks OK · last event 2m ago`. Crawde warns
+on the tray, the pet, and in Settings when hooks are missing or stale (an old access token,
+a different install path, or missing events). **Run diagnostics** in Settings → Claude
+tests the activity bridge, Claude settings, hooks, recent activity, the status line, and
+each WSL distro, and shows pass, warning, or fail for each.
+
+### /crawde in Claude Code
+
+Crawde ships an opt-in Claude Code plugin. Add it once:
+
+```
+/plugin marketplace add joezhuo2/crawde
+/plugin install crawde@crawde
+```
+
+Then run `/crawde install`, `/crawde uninstall`, or `/crawde status`. The command runs
+`crawde.exe --install-hooks`, `--uninstall-hooks`, or `--hook-status`, which you can also
+run yourself.
 
 Crawde preserves your existing Claude hooks, backs up settings before changes,
 and removes only its own handlers when disconnected. Older startup-hook
@@ -233,6 +266,7 @@ public GitHub releases endpoint.
 | Local bridge token | `%APPDATA%\com.joezhuo.crawde\bridge-token` |
 | Claude hooks | `%USERPROFILE%\.claude\settings.json`, or `CLAUDE_CONFIG_DIR` |
 | Hook backups | `settings.crawde-<timestamp>.bak` beside Claude's settings |
+| Error and crash log | `%APPDATA%\com.joezhuo.crawde\crawde.log` (rotates at 512 KB) |
 
 ## Development
 

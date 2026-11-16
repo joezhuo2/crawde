@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- Chat cards show error details in red when a tool fails or a response stops with an error.
+- Chat cards count tool calls and edited files; hover for a per-tool breakdown and the file list.
+- Do not disturb: mute sounds and reminders during Windows Focus Assist / Do not disturb or daily quiet hours.
+- Ghost mode makes the crab see-through and click-through, from the right-click menu or a configurable shortcut (Ctrl+Alt+G).
+- The crab hides automatically while a fullscreen app runs on its monitor (on by default; ghost mode overrides it).
+- Choose a custom `.wav` or `.mp3` sound for approvals, completions, and errors.
+- The tray tooltip shows hook status and the last event time, and Crawde warns when hooks are missing or stale.
+- Settings → Claude has a Run diagnostics button for the bridge, Claude settings, hooks, activity, status line, and WSL.
+- Errors and crashes are logged; Settings → About can view, copy (home folder redacted), or open the log.
+- New opt-in `/crawde` Claude Code plugin and `--install-hooks`, `--uninstall-hooks`, `--hook-status` command-line flags.
+
 ## 0.2.4 — 2026-11-11
 
 - Fixed clicking a chat card for a conversation that is still open showing a "could not open this conversation" error; it now opens the conversation in Claude Desktop (#56).

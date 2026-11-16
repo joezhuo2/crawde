@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 — 2026-11-16
 
 - Chat cards show error details in red when a tool fails or a response stops with an error.
 - Chat cards count tool calls and edited files; hover for a per-tool breakdown and the file list.

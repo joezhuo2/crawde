@@ -1,6 +1,6 @@
 {
   "name": "crawde",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "description": "Install, remove, or check Crawde activity hooks from inside Claude Code.",
   "homepage": "https://github.com/joezhuo2/crawde",
   "license": "MIT"

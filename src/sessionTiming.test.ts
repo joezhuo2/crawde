@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDuration, sessionTiming } from './sessionTiming';
+import { formatDuration, sessionTiming, toolSummary } from './sessionTiming';
 import type { Session } from './types';
 
 const session: Session = { id: 's', cwd: 'C:\\work', project: 'work', title: 'A task', status: 'working', activity: '📚 Reading', tool: 'Read', agents: [], updatedAt: 100_000, lastPromptAt: 1, finishedAt: null, workingMs: 0, waitingMs: 0, statusSince: 100_000 };
@@ -23,5 +23,10 @@ describe('session timing', () => {
   it('stops counting once the session is done', () => {
     const done = { ...session, status: 'done' as const, workingMs: 60_000, statusSince: 100_000 };
     expect(sessionTiming(done, 160_000)).toBe('1m 0s working · active 1m 0s ago');
+  });
+  it('summarizes tool calls and edited files', () => {
+    expect(toolSummary(session)).toEqual({ text: '', detail: '' });
+    const busy = { ...session, toolCount: 3, toolCounts: { Read: 1, Edit: 2 }, filesEdited: ['a.rs'] };
+    expect(toolSummary(busy)).toEqual({ text: '3 tools · 1 file', detail: 'Edit ×2, Read ×1\na.rs' });
   });
 });

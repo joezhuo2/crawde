@@ -22,6 +22,10 @@ export interface Session {
   waitingMs: number;
   statusSince: number;
   contextPct?: number | null;
+  error?: string | null;
+  toolCount?: number;
+  toolCounts?: Record<string, number>;
+  filesEdited?: string[];
 }
 
 export interface UsageWindow {

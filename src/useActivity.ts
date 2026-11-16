@@ -7,10 +7,11 @@ const initial: Snapshot = { sessions: [], hooksInstalled: false, bridgeError: nu
 // Preview data is opt-in and never substituted for a disconnected native bridge.
 function demo(): Session[] {
   return [
-    { id: 'preview-1', project: 'Crawde', title: 'A little companion for your work', status: 'working', activity: '📚 Reading the animation frames', tool: 'Read', agents: [{ id: 'preview-agent-1', name: 'illustrator', task: 'Redraw the claw animation frames', state: 'working', tool: 'Read' }, { id: 'preview-agent-2', name: 'explorer', task: 'Find where the sprite sheets are loaded', state: 'thinking', tool: '' }] },
+    { id: 'preview-1', project: 'Crawde', title: 'A little companion for your work', status: 'working', activity: '📚 Reading the animation frames', tool: 'Read', toolCount: 14, toolCounts: { Read: 9, Edit: 4, Bash: 1 }, filesEdited: ['src/Sprite.tsx', 'src/style.css'], agents: [{ id: 'preview-agent-1', name: 'illustrator', task: 'Redraw the claw animation frames', state: 'working', tool: 'Read' }, { id: 'preview-agent-2', name: 'explorer', task: 'Find where the sprite sheets are loaded', state: 'thinking', tool: '' }] },
     { id: 'preview-2', project: 'Crawde', title: 'Polish the settings', status: 'approval', activity: '✋ Waiting for your approval', tool: 'Bash', agents: [] },
     { id: 'preview-3', project: 'Garden', title: 'Tidy up the stylesheet', status: 'done', activity: '✓ Finished', tool: '', agents: [] },
     { id: 'preview-4', project: 'Garden', title: 'Review the next change', status: 'working', activity: '✏️ Editing the layout', tool: 'Edit', agents: [] },
+    { id: 'preview-5', project: 'Garden', title: 'Run the test suite', status: 'error', activity: '⚠️ Bash failed', tool: 'Bash', error: 'exit code 1: 2 tests failed in layout.test.ts', agents: [] },
   ].map(s => ({ ...s, cwd: 'C:\\Projects\\' + s.project, updatedAt: Date.now(), lastPromptAt: Date.now(), finishedAt: null, workingMs: 134_000, waitingMs: 18_000, statusSince: Date.now() }) as Session);
 }
 

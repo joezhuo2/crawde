@@ -1,7 +1,7 @@
 import { ArrowLeft, ArrowRight, Check, PushPin, PushPinSlash, X } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 import type { Session } from './types';
-import { sessionTiming } from './sessionTiming';
+import { sessionTiming, toolSummary } from './sessionTiming';
 import { contextLevel } from './contextPct';
 import { agentExtraHeight, agentListHeight, agentStateLabel, agentSummary } from './subagents';
 
@@ -68,15 +68,18 @@ export function ChatBubbles({ sessions, expanded, pinned, onPin, onOpen, onDismi
         const hasAgents = session.agents.length > 0;
         const agentsOpen = hasAgents && extras[index] > 0;
         const listId = `agents-${session.id}`;
+        const counts = toolSummary(session);
         return <article key={session.id} className={`chat-bubble ${session.status}${hasAgents ? ' has-agents' : ''}${agentsOpen ? ' agents-open' : ''}`} style={{ '--index': index, '--extra': `${extras[index]}px`, '--offset': `${offsets[index]}px`, '--agents-height': `${agentListHeight(session.agents.length)}px` } as React.CSSProperties}>
         <button className="chat-open" onClick={() => onOpen(session.id)} aria-label={`Open ${session.project} · ${session.title}`}>
         <span className="chat-title"><span>{session.project} <span className="separator">·</span> {session.title}</span>{session.status === 'done' && <Check weight="bold" size={15} />}</span>
         <span className="chat-details">
           <span className="chat-activity">{session.activity}</span>
-          {hasAgents
+          {session.status === 'error' && session.error
+            ? <span className="chat-meta chat-error" title={session.error}>{session.error}</span>
+            : hasAgents
             ? <span className="chat-meta" aria-hidden="true">&nbsp;</span>
             : <span className="chat-meta">{session.tool ? `🛠️ ${session.tool}` : session.status === 'done' ? '🌿 All wrapped up' : '💭 Working on your request'}</span>}
-          <span className="chat-meta">{sessionTiming(session, Date.now())}</span>
+          <span className="chat-meta" title={counts.detail || undefined}>{[sessionTiming(session, Date.now()), counts.text].filter(Boolean).join(' · ')}</span>
         </span>
         </button>
         {typeof session.contextPct === 'number' && <span className={`chat-ctx ${contextLevel(session.contextPct)}`}>{session.contextPct}% ctx</span>}

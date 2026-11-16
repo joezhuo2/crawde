@@ -23,6 +23,26 @@ pub struct HookEvent {
     pub notification_type: String,
     #[serde(default)]
     pub transcript_path: String,
+    #[serde(default)]
+    pub error: serde_json::Value,
+    #[serde(default)]
+    pub error_details: serde_json::Value,
+    #[serde(default)]
+    pub is_interrupt: bool,
+}
+
+impl HookEvent {
+    fn error_text(&self) -> String {
+        let text = |value: &serde_json::Value| match value {
+            serde_json::Value::String(text) => short(text, 160),
+            serde_json::Value::Null => String::new(),
+            other => short(&other.to_string(), 160),
+        };
+        match text(&self.error_details) {
+            details if details.is_empty() => text(&self.error),
+            details => details,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -64,9 +84,38 @@ pub struct Session {
     pub waiting_ms: u64,
     pub status_since: u64,
     pub context_pct: Option<u8>,
+    pub error: Option<String>,
+    pub tool_count: u32,
+    pub tool_counts: BTreeMap<String, u32>,
+    pub files_edited: BTreeSet<String>,
 }
 
+const MAX_TRACKED_FILES: usize = 200;
+const MAX_TRACKED_TOOLS: usize = 50;
+
 impl Session {
+    fn count_tool(&mut self, event: &HookEvent) {
+        let name = short(&event.tool_name, 80);
+        if name.is_empty() {
+            return;
+        }
+        self.tool_count = self.tool_count.saturating_add(1);
+        if self.tool_counts.contains_key(&name) || self.tool_counts.len() < MAX_TRACKED_TOOLS {
+            *self.tool_counts.entry(name).or_default() += 1;
+        }
+        if matches!(event.tool_name.as_str(), "Edit" | "Write" | "NotebookEdit")
+            && self.files_edited.len() < MAX_TRACKED_FILES
+        {
+            if let Some(path) = ["file_path", "notebook_path"]
+                .iter()
+                .find_map(|key| event.tool_input.get(*key).and_then(|v| v.as_str()))
+                .filter(|path| !path.is_empty() && path.len() <= 1024)
+            {
+                self.files_edited.insert(path.to_string());
+            }
+        }
+    }
+
     fn set_status(&mut self, status: &str, now: u64) {
         if self.status == status {
             return;
@@ -252,6 +301,10 @@ impl Activity {
             waiting_ms: 0,
             status_since: now,
             context_pct: None,
+            error: None,
+            tool_count: 0,
+            tool_counts: BTreeMap::new(),
+            files_edited: BTreeSet::new(),
         });
         session.updated_at = now;
         match event.hook_event_name.as_str() {
@@ -266,17 +319,20 @@ impl Activity {
                 session.set_status("working", now);
                 session.finished_at = None;
                 session.activity = "💭 Thinking".into();
+                session.error = None;
                 session.tool.clear();
                 session.clear_agents();
             }
             "PreToolUse" | "PostToolUse" => {
                 session.set_status("working", now);
                 session.finished_at = None;
+                session.error = None;
                 session.tool = short(&event.tool_name, 80);
-                if event.hook_event_name == "PreToolUse"
-                    && matches!(event.tool_name.as_str(), "Agent" | "Task")
-                {
-                    session.queue_task(&event.tool_input);
+                if event.hook_event_name == "PreToolUse" {
+                    session.count_tool(&event);
+                    if matches!(event.tool_name.as_str(), "Agent" | "Task") {
+                        session.queue_task(&event.tool_input);
+                    }
                 }
                 let label = match event.tool_name.as_str() {
                     "Read" | "Glob" | "Grep" => "📚 Reading",
@@ -312,9 +368,28 @@ impl Activity {
             "SubagentStop" => {
                 session.agents.retain(|a| a.id != event.agent_id);
             }
+            "PostToolUseFailure" if event.is_interrupt => {
+                session.activity = "⏹️ Interrupted".into();
+            }
             "PostToolUseFailure" | "StopFailure" => {
                 session.set_status("error", now);
-                session.activity = "⚠️ Something needs attention".into();
+                let tool = short(&event.tool_name, 80);
+                session.activity = match (event.hook_event_name.as_str(), tool.is_empty()) {
+                    ("PostToolUseFailure", false) => format!("⚠️ {tool} failed"),
+                    ("StopFailure", _) => "⚠️ Claude stopped with an error".into(),
+                    _ => "⚠️ Something needs attention".into(),
+                };
+                let detail = event.error_text();
+                session.error = Some(if detail.is_empty() {
+                    "No error details were reported".into()
+                } else {
+                    detail
+                });
+                if event.hook_event_name == "StopFailure" {
+                    session.finished_at = Some(now);
+                    session.clear_agents();
+                    session.tool.clear();
+                }
             }
             "Stop" => {
                 session.set_status("done", now);
@@ -612,6 +687,60 @@ mod tests {
         state.sessions.get_mut("test-1").unwrap().context_pct = Some(41);
         let value = serde_json::to_value(&state.visible(6)[0]).unwrap();
         assert_eq!(value["contextPct"], 41);
+    }
+    #[test]
+    fn failures_show_error_text_and_clear_on_progress() {
+        let mut state = Activity::default();
+        state.apply(event("UserPromptSubmit"), 1).unwrap();
+        let mut failed = event("PostToolUseFailure");
+        failed.tool_name = "Bash".into();
+        failed.error = serde_json::json!("exit code 1:   npm ERR!
+missing script");
+        state.apply(failed, 2).unwrap();
+        let session = &state.visible(2)[0];
+        assert_eq!(session.status, "error");
+        assert_eq!(session.activity, "⚠️ Bash failed");
+        assert_eq!(session.error.as_deref(), Some("exit code 1: npm ERR! missing script"));
+        state.apply(event("PreToolUse"), 3).unwrap();
+        assert!(state.visible(3)[0].error.is_none());
+        let mut stop = event("StopFailure");
+        stop.error = serde_json::json!("rate_limit");
+        stop.error_details = serde_json::json!("429 Too Many Requests");
+        state.apply(stop, 4).unwrap();
+        let session = &state.visible(4)[0];
+        assert_eq!(session.error.as_deref(), Some("429 Too Many Requests"));
+        assert_eq!(session.finished_at, Some(4));
+        let mut interrupt = event("PostToolUseFailure");
+        interrupt.is_interrupt = true;
+        state.apply(event("UserPromptSubmit"), 5).unwrap();
+        state.apply(interrupt, 6).unwrap();
+        assert_eq!(state.visible(6)[0].status, "working");
+        assert!(state.visible(6)[0].error.is_none());
+    }
+    #[test]
+    fn tool_calls_and_edited_files_are_counted_once_per_call() {
+        let mut state = Activity::default();
+        for (tool, input) in [
+            ("Read", serde_json::json!({"file_path": "a.rs"})),
+            ("Edit", serde_json::json!({"file_path": "a.rs"})),
+            ("Edit", serde_json::json!({"file_path": "a.rs"})),
+            ("Write", serde_json::json!({"file_path": "b.rs"})),
+            ("NotebookEdit", serde_json::json!({"notebook_path": "c.ipynb"})),
+        ] {
+            let mut pre = event("PreToolUse");
+            pre.tool_name = tool.into();
+            pre.tool_input = input;
+            state.apply(pre.clone(), 1).unwrap();
+            pre.hook_event_name = "PostToolUse".into();
+            state.apply(pre, 2).unwrap();
+        }
+        let session = &state.visible(2)[0];
+        assert_eq!(session.tool_count, 5);
+        assert_eq!(session.tool_counts["Edit"], 2);
+        assert_eq!(session.files_edited.len(), 3);
+        let value = serde_json::to_value(session).unwrap();
+        assert_eq!(value["toolCount"], 5);
+        assert_eq!(value["filesEdited"][0], "a.rs");
     }
     #[test]
     fn session_ids_allow_only_short_alphanumeric_and_dash() {

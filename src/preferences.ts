@@ -21,6 +21,9 @@ export interface Preferences {
   ghost: boolean;
   ghostHotkey: string;
   hideInFullscreen: boolean;
+  approvalSoundFile: string;
+  completionSoundFile: string;
+  errorSoundFile: string;
 }
 
 export const defaults: Preferences = {
@@ -29,4 +32,5 @@ export const defaults: Preferences = {
   approvalSound: true, completionSound: true, errorSound: true, reminders: true,
   openTarget: 'desktop', quietHours: false, quietStart: '22:00', quietEnd: '08:00', followFocusAssist: true,
   ghost: false, ghostHotkey: 'Ctrl+Alt+G', hideInFullscreen: true,
+  approvalSoundFile: '', completionSoundFile: '', errorSoundFile: '',
 };

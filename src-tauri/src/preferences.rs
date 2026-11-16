@@ -28,6 +28,9 @@ pub struct Preferences {
     pub ghost: bool,
     pub ghost_hotkey: String,
     pub hide_in_fullscreen: bool,
+    pub approval_sound_file: String,
+    pub completion_sound_file: String,
+    pub error_sound_file: String,
 }
 
 impl Default for Preferences {
@@ -55,6 +58,9 @@ impl Default for Preferences {
             ghost: false,
             ghost_hotkey: "Ctrl+Alt+G".into(),
             hide_in_fullscreen: true,
+            approval_sound_file: String::new(),
+            completion_sound_file: String::new(),
+            error_sound_file: String::new(),
         }
     }
 }
@@ -90,6 +96,15 @@ pub fn save_preferences(app: AppHandle, preferences: Preferences) -> Result<(), 
         || !["desktop", "terminal"].contains(&preferences.open_target.as_str())
     {
         return Err("Invalid preference value".into());
+    }
+    for file in [
+        &preferences.approval_sound_file,
+        &preferences.completion_sound_file,
+        &preferences.error_sound_file,
+    ] {
+        if !file.is_empty() && !valid_sound_file(file) {
+            return Err("Sound files must be existing .wav or .mp3 files".into());
+        }
     }
     let main = preferences
         .hotkey
@@ -167,6 +182,17 @@ pub fn save_preferences(app: AppHandle, preferences: Preferences) -> Result<(), 
     *state.preferences.lock().map_err(|e| e.to_string())? = preferences;
     crate::lifecycle::refresh_menu(&app);
     Ok(())
+}
+
+pub fn valid_sound_file(path: &str) -> bool {
+    let path_ref = std::path::Path::new(path);
+    !path.contains('"')
+        && path_ref.is_absolute()
+        && path_ref
+            .extension()
+            .and_then(|e| e.to_str())
+            .is_some_and(|e| e.eq_ignore_ascii_case("wav") || e.eq_ignore_ascii_case("mp3"))
+        && path_ref.is_file()
 }
 
 pub fn bind(app: &AppHandle, shortcut: &str, action: fn(&AppHandle)) -> Result<(), String> {

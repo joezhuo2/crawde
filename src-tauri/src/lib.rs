@@ -131,6 +131,7 @@ pub fn run() {
         )
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(AppState::default())
         .setup(|app| {
             #[cfg(target_os = "macos")]
@@ -162,6 +163,7 @@ pub fn run() {
             preferences::save_preferences,
             preferences::update_preference,
             notifications::test_sound,
+            notifications::pick_sound,
             navigation::open_chat,
             navigation::open_claude,
             navigation::new_chat,

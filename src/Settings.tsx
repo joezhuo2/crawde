@@ -56,6 +56,17 @@ export function Settings() {
 
   const textInput = (key: keyof typeof shortcutDraft, label: string, placeholder: string) => <input className="hotkey-input" aria-label={label} value={shortcutDraft[key] ?? preferences[key]} onChange={e => setShortcutDraft(d => ({ ...d, [key]: e.target.value }))} onBlur={e => { if (shortcutDraft[key] !== undefined) set(key, e.target.value.trim()); setShortcutDraft(d => { const next = { ...d }; delete next[key]; return next; }); }} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }} placeholder={placeholder} spellCheck={false} />;
 
+  const soundFile = (key: 'approvalSoundFile' | 'completionSoundFile' | 'errorSoundFile', kind: string) => {
+    const file = preferences[key];
+    const choose = async () => { try { const path = await command<string | null>('pick_sound'); if (path) set(key, path); } catch (error) { setMessage(String(error)); } };
+    return <div className="sound-file">
+      <span title={file || undefined}>{file ? file.split(/[\\/]/).pop() : `Built-in ${preferences.soundStyle} tone`}</span>
+      <button type="button" className="text-button" onClick={() => void choose()}>Choose…</button>
+      {file && <button type="button" className="text-button" onClick={() => set(key, '')}>Reset</button>}
+      <button type="button" className="text-button" onClick={() => void act('test_sound', { preferences, kind })}>Test</button>
+    </div>;
+  };
+
   if (!draft || new URLSearchParams(location.search).has('loading')) return <SettingsSkeleton error={activity.connectionError} />;
 
   return <main className="settings-shell">
@@ -82,14 +93,16 @@ export function Settings() {
           <Field label="Volume"><input aria-label="Sound volume" type="range" min="0" max="1" step="0.05" value={preferences.volume} onChange={e => set('volume', Number(e.target.value))} /></Field>
           <Field label="Sound style"><select value={preferences.soundStyle} onChange={e => set('soundStyle', e.target.value as Preferences['soundStyle'])}><option value="soft">Soft tones</option><option value="retro">Retro game</option></select></Field>
           <Toggle label="Needs approval" checked={preferences.approvalSound} onChange={v => set('approvalSound', v)} />
+          {soundFile('approvalSoundFile', 'approval')}
           <Toggle label="Finished a response" checked={preferences.completionSound} onChange={v => set('completionSound', v)} />
+          {soundFile('completionSoundFile', 'done')}
           <Toggle label="Errors" checked={preferences.errorSound} onChange={v => set('errorSound', v)} />
+          {soundFile('errorSoundFile', 'error')}
           <Toggle label="Approval reminders" detail="A quiet reminder every 45 seconds." checked={preferences.reminders} onChange={v => set('reminders', v)} />
           <h2>Do not disturb</h2>
           <Toggle label="Follow Windows Do not disturb" detail="Mute sounds and reminders while Focus Assist or Do not disturb is on." checked={preferences.followFocusAssist} onChange={v => set('followFocusAssist', v)} />
           <Toggle label="Quiet hours" detail="Mute sounds and reminders during a daily window. Cards still update." checked={preferences.quietHours} onChange={v => set('quietHours', v)} />
           {preferences.quietHours && <Field label="From · until"><span className="time-range">{textInput('quietStart', 'Quiet hours start', '22:00')}{textInput('quietEnd', 'Quiet hours end', '08:00')}</span></Field>}
-          <button type="button" className="secondary-button" onClick={() => void act('test_sound', { preferences })}>Test sound</button>
         </>}
         {tab === 'claude' && <>
           <h2>Connected to your work</h2>

@@ -88,12 +88,63 @@ pub fn wave(kind: &str, preferences: &Preferences) -> Vec<u8> {
     bytes
 }
 
+pub fn sound_file<'a>(kind: &str, preferences: &'a Preferences) -> &'a str {
+    match kind {
+        "approval" => &preferences.approval_sound_file,
+        "error" => &preferences.error_sound_file,
+        _ => &preferences.completion_sound_file,
+    }
+}
+
+#[cfg(windows)]
+fn play_file(path: &str, volume: f32) -> bool {
+    use windows_sys::Win32::Media::Multimedia::mciSendStringW;
+    let send = |command: String| {
+        let wide: Vec<u16> = command.encode_utf16().chain([0]).collect();
+        unsafe {
+            mciSendStringW(
+                wide.as_ptr(),
+                std::ptr::null_mut(),
+                0,
+                std::ptr::null_mut(),
+            ) == 0
+        }
+    };
+    let alias = format!("crawde{}", uuid::Uuid::new_v4().simple());
+    if !send(format!("open \"{path}\" type mpegvideo alias {alias}")) {
+        return false;
+    }
+    let level = (volume.clamp(0.0, 1.0) * 1000.0) as u32;
+    send(format!("setaudio {alias} volume to {level}"));
+    let played = send(format!("play {alias} wait"));
+    send(format!("close {alias}"));
+    played
+}
+
+#[cfg(target_os = "macos")]
+fn play_file(path: &str, volume: f32) -> bool {
+    std::process::Command::new("afplay")
+        .args(["-v", &volume.clamp(0.0, 1.0).to_string(), path])
+        .status()
+        .is_ok_and(|s| s.success())
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
+fn play_file(_: &str, _: f32) -> bool {
+    false
+}
+
 fn play(kind: &str, preferences: &Preferences) {
     if !preferences.sound || preferences.volume <= 0.0 {
         return;
     }
     let bytes = wave(kind, preferences);
+    let file = sound_file(kind, preferences).to_string();
+    let volume = preferences.volume;
     std::thread::spawn(move || {
+        if !file.is_empty() && play_file(&file, volume) {
+            return;
+        }
         #[cfg(windows)]
         unsafe {
             use windows_sys::Win32::Media::Audio::{
@@ -120,8 +171,20 @@ fn play(kind: &str, preferences: &Preferences) {
 }
 
 #[tauri::command]
-pub fn test_sound(preferences: Preferences) {
-    play("done", &preferences);
+pub fn test_sound(preferences: Preferences, kind: Option<String>) {
+    play(kind.as_deref().unwrap_or("done"), &preferences);
+}
+
+#[tauri::command]
+pub async fn pick_sound(app: tauri::AppHandle) -> Option<String> {
+    use tauri_plugin_dialog::DialogExt;
+    app.dialog()
+        .file()
+        .set_title("Choose a sound")
+        .add_filter("Sounds", &["wav", "mp3"])
+        .blocking_pick_file()
+        .and_then(|path| path.into_path().ok())
+        .map(|path| path.to_string_lossy().into_owned())
 }
 
 #[cfg(test)]

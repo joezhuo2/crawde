@@ -18,20 +18,13 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write
+      actions: read
     env:
       RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.tag || github.ref_name }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
       - name: Verify tagged versions
         shell: pwsh
         run: |
@@ -41,12 +34,42 @@ jobs:
           if ($env:RELEASE_TAG -ne "v$crawdeVersion" -or $crawdeVersion -ne $crawdeTauriVersion -or $crawdeVersion -ne $crawdeCargoVersion) {
             throw 'Tag and application versions must match.'
           }
-      - run: npm ci
-      - run: npm run check
-      - run: python scripts/test-wsl-setup.py
-      - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
-      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked
-      - run: npm run tauri build
+      - name: Reuse installer from main build
+        id: reuse
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $false
+          $crawdeSha = git rev-parse HEAD
+          $crawdeRun = gh run list --workflow windows.yml --commit $crawdeSha --event push --limit 1 --json databaseId | ConvertFrom-Json | Select-Object -First 1
+          if (-not $crawdeRun) { Write-Host "No main build for $crawdeSha; building."; exit 0 }
+          gh run watch $crawdeRun.databaseId --exit-status *> $null
+          if ($LASTEXITCODE -ne 0) { Write-Host 'Main build failed; building.'; exit 0 }
+          gh run download $crawdeRun.databaseId -n Crawde-Windows -D src-tauri/target/release/bundle/nsis
+          if ($LASTEXITCODE -ne 0) { Write-Host 'Installer artifact unavailable; building.'; exit 0 }
+          "found=true" >> $env:GITHUB_OUTPUT
+      - uses: actions/setup-node@v4
+        if: steps.reuse.outputs.found != 'true'
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        if: steps.reuse.outputs.found != 'true'
+      - uses: Swatinem/rust-cache@v2
+        if: steps.reuse.outputs.found != 'true'
+        with:
+          workspaces: src-tauri
+      - name: Test and build
+        if: steps.reuse.outputs.found != 'true'
+        shell: bash
+        run: |
+          npm ci
+          npm run check
+          python scripts/test-wsl-setup.py
+          cargo fmt --manifest-path src-tauri/Cargo.toml --check
+          cargo test --manifest-path src-tauri/Cargo.toml --locked
+          npm run tauri build
       - uses: actions/upload-artifact@v4
         with:
           name: Crawde-${{ env.RELEASE_TAG }}-Windows
@@ -82,20 +105,13 @@ jobs:
     runs-on: macos-latest
     permissions:
       contents: write
+      actions: read
     env:
       RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.tag || github.ref_name }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
       - name: Verify tagged versions
         run: |
           crawde_version=$(node -p "require('./package.json').version")
@@ -105,10 +121,36 @@ jobs:
             echo 'Tag and application versions must match.'
             exit 1
           fi
-      - run: npm ci
-      - run: npm run check
-      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked
-      - run: npm run tauri build
+      - name: Reuse disk image from main build
+        id: reuse
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          sha=$(git rev-parse HEAD)
+          run_id=$(gh run list --workflow macos.yml --commit "$sha" --event push --limit 1 --json databaseId --jq '.[0].databaseId')
+          if [ -z "$run_id" ]; then echo "No main build for $sha; building."; exit 0; fi
+          if ! gh run watch "$run_id" --exit-status > /dev/null 2>&1; then echo 'Main build failed; building.'; exit 0; fi
+          if ! gh run download "$run_id" -n Crawde-macOS -D src-tauri/target/release/bundle/dmg; then echo 'Disk image artifact unavailable; building.'; exit 0; fi
+          echo "found=true" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v4
+        if: steps.reuse.outputs.found != 'true'
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        if: steps.reuse.outputs.found != 'true'
+      - uses: Swatinem/rust-cache@v2
+        if: steps.reuse.outputs.found != 'true'
+        with:
+          workspaces: src-tauri
+      - name: Test and build
+        if: steps.reuse.outputs.found != 'true'
+        run: |
+          npm ci
+          npm run check
+          cargo test --manifest-path src-tauri/Cargo.toml --locked
+          npm run tauri build
       - uses: actions/upload-artifact@v4
         with:
           name: Crawde-${{ env.RELEASE_TAG }}-macOS

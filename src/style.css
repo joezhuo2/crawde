@@ -31,6 +31,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .chat-details { display: block; max-height: 0; padding-top: 0; opacity: 0; overflow: hidden; transition: max-height 560ms, padding-top 560ms, opacity 280ms; }
 .chat-activity, .chat-meta { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12px; line-height: 18px; }
 .chat-meta { font-size: 11px; }
+.chat-details > .chat-meta:last-child { padding-right: 56px; }
 .chat-ctx { position: absolute; right: 11px; top: 23px; font-size: 11px; line-height: 18px; color: var(--muted); white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 280ms, top 560ms cubic-bezier(.22,.68,.2,1); }
 .expanded .chat-ctx { top: 70px; opacity: 1; }
 .chat-ctx.warn { color: var(--ctx-warn); }

@@ -350,7 +350,7 @@ impl Activity {
                 session.activity = if detail.is_empty() {
                     label.into()
                 } else {
-                    format!("{label} · {}", short(detail, 90))
+                    short(detail, 90)
                 };
             }
             "PermissionRequest" | "Elicitation" => {

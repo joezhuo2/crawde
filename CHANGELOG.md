@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1 — 2026-11-23
+
+- Chat cards show just the tool's description (for example "Build app") instead of prefixing it with "Running a command", "Reading", and similar labels.
+- Long text on the last line of a chat card no longer covers the context percentage.
+- Releases reuse the installers built for the tagged commit on main instead of rebuilding them.
+
 ## 0.3.0 — 2026-11-16
 
 - Chat cards show error details in red when a tool fails or a response stops with an error.
